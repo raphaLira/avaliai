@@ -927,20 +927,45 @@ async function salvarOnb(pular=false){
     if(!pular)await sb.from('bonus_config').upsert({negocio_id:neg.id,tipo:document.getElementById('bonus-tipo').value,valor_anonimo:+(document.getElementById('bonus-anon').value)||5,valor_identificado:+(document.getElementById('bonus-id').value)||15,bonus_anonimo_ativo:document.getElementById('toggle-anon-onb').classList.contains('on'),prefixo_codigo:document.getElementById('bonus-prefixo').value||'AVA',validade_dias:+(document.getElementById('bonus-validade').value)||30},{onConflict:'negocio_id'})
     await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
     atualizarSidebar()
-    if(!pular){irStep(5);setLoading(false);return}
+    if(!pular){
+      await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+      atualizarSidebar()
+      irStep(5)
+      setLoading(false)
+      return
+    }
     showScreen('screen-app');navTo('dashboard');await carregarDashboard()
   }catch(err){showToast('❌ '+err.message)}
   setLoading(false)
 }
 function montarResumo(){
+  const neg=S.negocio
+  if(!neg)return
+  const nome=neg.nome||document.getElementById('onb-nome')?.value||'—'
+  const slug=neg.slug||document.getElementById('onb-slug')?.value||'—'
+  const nItens=S.itens.length||S.onbItens.length||0
+  const bc=S.bonusConfig
+  const vAnon=bc?.valor_anonimo||document.getElementById('bonus-anon')?.value||5
+  const vId=bc?.valor_identificado||document.getElementById('bonus-id')?.value||15
   document.getElementById('onb-resumo').innerHTML=`
-    <div class="summary-row"><div class="sum-icon">🏪</div><div><div class="sum-label">Negócio</div><div class="sum-val">${document.getElementById('onb-nome').value||'—'}</div></div></div>
-    <div class="summary-row"><div class="sum-icon">🔗</div><div><div class="sum-label">Link</div><div class="sum-val" style="color:var(--brand)">avaliai.app/${document.getElementById('onb-slug').value||'—'}</div></div></div>
-    <div class="summary-row"><div class="sum-icon">⭐</div><div><div class="sum-label">Itens</div><div class="sum-val">${S.onbItens.length} itens</div></div></div>
-    <div class="summary-row" style="border:none"><div class="sum-icon">🎁</div><div><div class="sum-label">Bônus</div><div class="sum-val">${document.getElementById('bonus-anon')?.value||5}% anônimo · ${document.getElementById('bonus-id')?.value||15}% identificado</div></div></div>`
-  document.getElementById('copiar-link-btn').onclick=()=>{navigator.clipboard?.writeText(location.origin+'?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
+    <div class="summary-row"><div class="sum-icon">🏪</div><div><div class="sum-label">Negócio</div><div class="sum-val">${nome}</div></div></div>
+    <div class="summary-row"><div class="sum-icon">🔗</div><div><div class="sum-label">Link</div><div class="sum-val" style="color:var(--brand)">avaliai.app/${slug}</div></div></div>
+    <div class="summary-row"><div class="sum-icon">⭐</div><div><div class="sum-label">Itens de avaliação</div><div class="sum-val">${nItens} itens configurados</div></div></div>
+    <div class="summary-row" style="border:none"><div class="sum-icon">🎁</div><div><div class="sum-label">Bônus</div><div class="sum-val">${vAnon}% anônimo · ${vId}% identificado</div></div></div>`
+  document.getElementById('copiar-link-btn').onclick=()=>{
+    navigator.clipboard?.writeText(location.origin+'?slug='+slug)
+    showToast('✅ Link copiado!')
+  }
 }
-async function irDashboard(){showScreen('screen-app');navTo('dashboard');await carregarDashboard()}
+async function irDashboard(){
+  setLoading(true)
+  await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+  atualizarSidebar()
+  showScreen('screen-app')
+  navTo('dashboard')
+  await carregarDashboard()
+  setLoading(false)
+}
 
 // ── SIDEBAR / NAV ──
 async function atualizarSidebar(){
@@ -1167,7 +1192,9 @@ async function confirmarResgate(){
 // ── CONFIG ──
 async function carregarConfig(){
   if(!S.negocio)return
+  setLoading(true)
   await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+  setLoading(false)
   renderCfgItens()
   const bc=S.bonusConfig
   if(bc){document.getElementById('cfg-bonus-tipo').value=bc.tipo;document.getElementById('cfg-bonus-anon').value=bc.valor_anonimo;document.getElementById('cfg-bonus-id').value=bc.valor_identificado;document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo;document.getElementById('cfg-bonus-validade').value=bc.validade_dias;if(!bc.bonus_anonimo_ativo)document.getElementById('cfg-toggle-anon').classList.remove('on')}
@@ -1177,7 +1204,19 @@ async function carregarConfig(){
   document.getElementById('cfg-ramo').value=S.negocio.ramo
   document.getElementById('cfg-slug').value=S.negocio.slug
 }
-function renderCfgItens(){document.getElementById('cfg-itens-list').innerHTML=S.itens.map((it,i)=>`<div class="eic-cfg-row"><span class="eic-cfg-name">${it.emoji||''} ${it.nome}</span><button class="ei-del" onclick="delCfgItem(${i})">✕</button></div>`).join('')}
+function renderCfgItens(){
+  const el=document.getElementById('cfg-itens-list')
+  if(!S.itens.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;text-align:center">Nenhum item. Adicione abaixo.</div>'
+    return
+  }
+  el.innerHTML=S.itens.map((it,i)=>`
+    <div class="eic-cfg-row">
+      <span style="font-size:20px;flex-shrink:0">${it.emoji||'⭐'}</span>
+      <span class="eic-cfg-name">${it.nome}</span>
+      <button class="ei-del" onclick="delCfgItem(${i})">✕</button>
+    </div>`).join('')
+}
 function delCfgItem(i){S.itens.splice(i,1);renderCfgItens()}
 function addCfgItem(){const inp=document.getElementById('cfg-new-item'),v=inp.value.trim();if(!v)return;const emoji=v.match(/^\p{Emoji}/u)?.[0]||null,nome=emoji?v.replace(emoji,'').trim():v;S.itens.push({negocio_id:S.negocio.id,nome,emoji,ordem:S.itens.length});inp.value='';renderCfgItens()}
 async function salvarItens(){setLoading(true);await sb.from('itens_avaliacao').delete().eq('negocio_id',S.negocio.id);if(S.itens.length)await sb.from('itens_avaliacao').insert(S.itens.map((it,i)=>({negocio_id:S.negocio.id,nome:it.nome,emoji:it.emoji,ordem:i})));await carregarItens();setLoading(false);showToast('✅ Itens salvos!')}
