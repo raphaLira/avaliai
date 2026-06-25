@@ -1187,13 +1187,13 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   document.getElementById('m-enviar-preview').textContent=msg
   document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
     window.open(linkWpp(wpp,msg),'_blank')
-    // Marca como enviado na lista se vier da lista
     if(S._itemIdAtual){
       await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
       S._itemIdAtual=null
+      showToast('✅ Marcado como enviado!')
     }
     closeModalDirect('m-enviar')
-    carregarLista()
+    setTimeout(()=>carregarLista(),500)
   }
   openModal('m-enviar')
 }
@@ -1305,7 +1305,6 @@ async function initAvaliar(slug,token){
   document.getElementById('av-itens-list').innerHTML=avS.itens.map((item,idx)=>`
     <div class="eval-item-card">
       <div class="eic-title">${item.emoji||'⭐'} ${item.nome}</div>
-      <div class="emoji-row" data-item="${idx}">${['😞','😕','😐','😊','🤩'].map((e,i)=>`<button class="emoji-btn" onclick="setEmoji(${idx},${i+1})" data-val="${i+1}">${e}</button>`).join('')}</div>
       <div class="mini-stars" data-item="${idx}">${[1,2,3,4,5].map(n=>`<button class="mstar" onclick="setMStar(${idx},${n})" data-val="${n}">⭐</button>`).join('')}</div>
       <textarea class="eic-comment" id="av-c-${idx}" placeholder="Comentário sobre ${item.nome} (opcional)…"></textarea>
     </div>`).join('')
@@ -1378,10 +1377,17 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault()
     deferredPrompt = e
-    // Mostra banner de instalação após 3 segundos
+    // Mostra modal após 2 segundos
     setTimeout(() => {
-      if (deferredPrompt) showInstallBanner(deferredPrompt)
-    }, 3000)
+      if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+        showInstallBanner(deferredPrompt)
+      }
+    }, 2000)
+  })
+  // Se já instalado como PWA, não mostra
+  window.addEventListener('appinstalled', () => {
+    localStorage.setItem('pwa-dismissed','1')
+    showToast('✅ App instalado com sucesso!')
   })
 })
 
