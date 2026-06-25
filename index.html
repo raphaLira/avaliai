@@ -877,6 +877,12 @@ function toggleAnonCfg(){
   const f=document.getElementById('cfg-anon-field')
   if(f)f.style.display=t.classList.contains('on')?'block':'none'
 }
+function toggleMinAvals(){
+  const t=document.getElementById('cfg-toggle-min-avals')
+  t.classList.toggle('on')
+  const f=document.getElementById('cfg-min-avals-field')
+  if(f)f.style.display=t.classList.contains('on')?'block':'none'
+}
 async function fazerLogout(){await sb.auth.signOut();S={user:null,negocio:null,bonusConfig:null,itens:[],templates:{},ramo:'lava_jato',onbItens:[],step:1,codigoAtual:null};showScreen('screen-login')}
 function switchLoginTab(t){
   document.querySelectorAll('.login-tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='entrar')||(i===1&&t==='cadastro')))
@@ -1230,12 +1236,30 @@ async function confirmarResgate(){
 async function carregarConfig(){
   if(!S.negocio)return
   setLoading(true)
-  await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+  // Força busca direta do banco
+  const{data:itensDB}=await sb.from('itens_avaliacao').select('*').eq('negocio_id',S.negocio.id).eq('ativo',true).order('ordem')
+  S.itens=itensDB||[]
+  await Promise.all([carregarBonusConfig(),carregarTemplates()])
   setLoading(false)
   renderCfgItens()
-  console.log('Itens carregados:',S.itens.length,S.itens)
   const bc=S.bonusConfig
-  if(bc){document.getElementById('cfg-bonus-tipo').value=bc.tipo;document.getElementById('cfg-bonus-anon').value=bc.valor_anonimo;document.getElementById('cfg-bonus-id').value=bc.valor_identificado;document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo;document.getElementById('cfg-bonus-validade').value=bc.validade_dias;if(!bc.bonus_anonimo_ativo)document.getElementById('cfg-toggle-anon').classList.remove('on')}
+  if(bc){
+    document.getElementById('cfg-bonus-tipo').value=bc.tipo||'percentual'
+    document.getElementById('cfg-bonus-anon').value=bc.valor_anonimo||5
+    document.getElementById('cfg-bonus-id').value=bc.valor_identificado||15
+    document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo||'AVA'
+    document.getElementById('cfg-bonus-validade').value=bc.validade_dias||30
+    if(!bc.bonus_anonimo_ativo){
+      document.getElementById('cfg-toggle-anon').classList.remove('on')
+      const f=document.getElementById('cfg-anon-field')
+      if(f)f.style.display='none'
+    }
+    if(bc.min_avaliacoes>1){
+      document.getElementById('cfg-toggle-min-avals').classList.add('on')
+      document.getElementById('cfg-min-avals-field').style.display='block'
+      document.getElementById('cfg-min-avals').value=bc.min_avaliacoes
+    }
+  }
   document.getElementById('tpl-pedido').value=S.templates['pedido_avaliacao']||''
   document.getElementById('tpl-codigo').value=S.templates['envio_codigo']||''
   document.getElementById('cfg-nome-negocio').value=S.negocio.nome
@@ -1260,8 +1284,23 @@ function addCfgItem(){const inp=document.getElementById('cfg-new-item'),v=inp.va
 async function salvarItens(){setLoading(true);await sb.from('itens_avaliacao').delete().eq('negocio_id',S.negocio.id);if(S.itens.length)await sb.from('itens_avaliacao').insert(S.itens.map((it,i)=>({negocio_id:S.negocio.id,nome:it.nome,emoji:it.emoji,ordem:i})));await carregarItens();setLoading(false);showToast('✅ Itens salvos!')}
 async function salvarBonusConfig(){
   setLoading(true)
-  const{error}=await sb.from('bonus_config').upsert({negocio_id:S.negocio.id,tipo:document.getElementById('cfg-bonus-tipo').value,valor_anonimo:+document.getElementById('cfg-bonus-anon').value,valor_identificado:+document.getElementById('cfg-bonus-id').value,bonus_anonimo_ativo:document.getElementById('cfg-toggle-anon').classList.contains('on'),prefixo_codigo:document.getElementById('cfg-bonus-prefixo').value,validade_dias:+document.getElementById('cfg-bonus-validade').value},{onConflict:'negocio_id'})
-  setLoading(false);if(error)return showToast('❌ '+error.message);await carregarBonusConfig();showToast('✅ Bônus salvo!')
+  const minAvals=document.getElementById('cfg-toggle-min-avals')?.classList.contains('on')
+    ? +(document.getElementById('cfg-min-avals')?.value||3)
+    : 1
+  const{error}=await sb.from('bonus_config').upsert({
+    negocio_id:S.negocio.id,
+    tipo:document.getElementById('cfg-bonus-tipo').value,
+    valor_anonimo:+document.getElementById('cfg-bonus-anon').value,
+    valor_identificado:+document.getElementById('cfg-bonus-id').value,
+    bonus_anonimo_ativo:document.getElementById('cfg-toggle-anon').classList.contains('on'),
+    prefixo_codigo:document.getElementById('cfg-bonus-prefixo').value,
+    validade_dias:+document.getElementById('cfg-bonus-validade').value,
+    min_avaliacoes:minAvals
+  },{onConflict:'negocio_id'})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  await carregarBonusConfig()
+  showToast('✅ Bônus salvo!')
 }
 async function salvarTemplate(tipo,id){const c=document.getElementById(id).value.trim();if(!c)return showToast('Digite o conteúdo');setLoading(true);const{error}=await sb.from('templates_mensagem').upsert({negocio_id:S.negocio.id,tipo,conteudo:c,titulo:tipo},{onConflict:'negocio_id,tipo'});setLoading(false);if(error)return showToast('❌ '+error.message);await carregarTemplates();showToast('✅ Template salvo!')}
 async function salvarNegocio(){const nome=document.getElementById('cfg-nome-negocio').value.trim(),slug=document.getElementById('cfg-slug').value.trim();if(!nome||!slug)return showToast('Preencha nome e slug');setLoading(true);const{error}=await sb.from('negocios').update({nome,slug,ramo:document.getElementById('cfg-ramo').value}).eq('id',S.negocio.id);setLoading(false);if(error)return showToast('❌ '+error.message);S.negocio.nome=nome;S.negocio.slug=slug;await atualizarSidebar();showToast('✅ Negócio atualizado!')}
@@ -1332,21 +1371,60 @@ async function enviarAvaliacao(){
     await sb.from('avaliacao_itens').insert(itensDados.filter(i=>i.nota>0).map(i=>({...i,avaliacao_id:av.id})))
     let codigoGerado=null
     const bc=avS.bc
-    if(bc&&bc.ativo&&(temId||bc.bonus_anonimo_ativo)){
-      const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
-      const valor=temId?bc.valor_identificado:bc.valor_anonimo
-      const expira=new Date();expira.setDate(expira.getDate()+bc.validade_dias)
-      const{data:cb}=await sb.from('codigos_bonus').insert({negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,codigo,tipo:bc.tipo,valor,identificado:!!temId,expira_em:expira.toISOString(),descricao:valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'}).select().single()
-      codigoGerado=cb
+    let progresso=null
+
+    if(bc&&(temId||bc.bonus_anonimo_ativo)){
+      const minAvals=bc.min_avaliacoes||1
+
+      // Conta avaliações anteriores deste cliente/negócio
+      let totalAvals=1
+      if(minAvals>1&&cId){
+        const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',avS.negocio.id).eq('cliente_id',cId)
+        totalAvals=count||1
+      }
+
+      if(totalAvals>=minAvals){
+        // Atingiu o mínimo — gera código
+        const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
+        const valor=temId?bc.valor_identificado:bc.valor_anonimo
+        const expira=new Date();expira.setDate(expira.getDate()+bc.validade_dias)
+        const{data:cb}=await sb.from('codigos_bonus').insert({
+          negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
+          codigo,tipo:bc.tipo,valor,identificado:!!temId,expira_em:expira.toISOString(),
+          descricao:valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'
+        }).select().single()
+        codigoGerado=cb
+      } else if(minAvals>1){
+        // Ainda não atingiu — mostra progresso
+        progresso={atual:totalAvals,total:minAvals,faltam:minAvals-totalAvals}
+      }
     }
-    mostrarSucesso(codigoGerado,temId,nomeId,telId)
+    mostrarSucesso(codigoGerado,temId,nomeId,telId,progresso)
   }catch(err){showToast('❌ '+err.message)}
   setLoading(false)
 }
-function mostrarSucesso(codigo,identificado,nome,tel){
+function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
   document.getElementById('avaliar-form').classList.add('hidden')
   document.getElementById('avaliar-sucesso').classList.remove('hidden')
   const hero=document.getElementById('suc-hero-el')
+  
+  if(progresso&&progresso.faltam>0){
+    // Ainda não atingiu o mínimo — mostra progresso
+    hero.style.background='linear-gradient(135deg,var(--brand),#A78BFA)'
+    hero.innerHTML=`
+      <div class="suc-icon">⭐</div>
+      <div class="suc-title">Obrigado pela avaliação!</div>
+      <div class="suc-sub">Você está chegando perto do seu bônus!</div>
+      <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;margin-top:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">${progresso.atual} de ${progresso.total} avaliações</div>
+        <div style="background:rgba(255,255,255,.2);border-radius:99px;height:10px;overflow:hidden">
+          <div style="background:#F5A623;height:100%;width:${(progresso.atual/progresso.total*100)}%;border-radius:99px;transition:.5s"></div>
+        </div>
+        <div style="font-size:12px;margin-top:8px;opacity:.85">Falta${progresso.faltam>1?'m':''} <b>${progresso.faltam}</b> avaliação${progresso.faltam>1?'ões':''} para ganhar seu bônus 🎁</div>
+      </div>`
+    return
+  }
+  
   hero.style.background=identificado?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,var(--brand),#A78BFA)'
   hero.innerHTML=`<div class="suc-icon">🎉</div><div class="suc-title">${identificado?'Obrigado, '+nome+'!':'Obrigado!'}</div><div class="suc-sub">${identificado?'Seu código chegou no WhatsApp!':'Salve seu código agora.'}</div>`
   if(codigo){
