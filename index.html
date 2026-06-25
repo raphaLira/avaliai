@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>AvaliaAí</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#6C3BF5"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AvaliaAí"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"/>
+
+<!-- SEO básico -->
+<meta name="description" content="Feedbacks que fazem crescer — Sistema de avaliação com bônus para clientes"/>
+<meta name="robots" content="noindex"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#6C3BF5;--brand-light:#EDE8FF;--brand-dark:#4A22D4;
+  --amber:#F5A623;--amber-light:#FEF3C7;--gold:#D97706;
+  --green:#22C55E;--gl:#DCFCE7;--gd:#15803D;
+  --red:#EF4444;--rl:#FEE2E2;--rd:#B91C1C;
+  --yellow:#F59E0B;--yl:#FEF3C7;
+  --bg:#F7F6FB;--surface:#fff;--text:#18141F;--muted:#7B6F8C;
+  --border:#E8E3F4;--radius:16px;--shadow:0 2px 20px rgba(108,59,245,.10);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.hidden{display:none!important}
+.btn{border:none;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.2s}
+.btn-primary{background:var(--brand);color:#fff}.btn-primary:hover{background:var(--brand-dark)}
+.btn-ghost{background:var(--brand-light);color:var(--brand)}
+.btn-danger{background:var(--rl);color:var(--rd)}
+.btn-green{background:var(--gl);color:var(--gd)}
+.btn-wpp{background:#25D366;color:#fff}
+.btn-amber{background:var(--amber-light);color:var(--gold)}
+.btn-full{width:100%;padding:14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:14px;outline:none;transition:.2s;color:var(--text);background:#fff}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5}
+.field-row{display:flex;gap:10px}.field-row .field{flex:1}
+.badge{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:700}
+.bg{background:var(--gl);color:var(--gd)}.br{background:var(--rl);color:var(--rd)}
+.bp{background:var(--brand-light);color:var(--brand)}.by{background:var(--yl);color:#92400E}
+.bgold{background:var(--amber-light);color:var(--gold)}
+.sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;margin-top:4px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.ti .tt{font-size:13px;font-weight:600}.ti .ts{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle{width:40px;height:22px;border-radius:99px;background:var(--border);position:relative;cursor:pointer;transition:.25s;flex-shrink:0}
+.toggle.on{background:var(--brand)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:21px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:520px;animation:up .22s ease;max-height:92vh;overflow-y:auto}
+@keyframes up{from{transform:translateY(36px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhandle{width:38px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 16px}
+.mtitle{font-size:17px;font-weight:800;margin-bottom:3px}
+.msub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#18141F;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:500;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--muted)}
+/* LAYOUT */
+.app-layout{display:flex;min-height:100vh}
+.sidebar{width:210px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{display:flex;align-items:center;gap:9px;margin-bottom:20px}
+.logo-sym{width:34px;height:30px;border-radius:9px 9px 9px 3px;background:linear-gradient(135deg,var(--amber),#E8870A);display:flex;align-items:center;justify-content:center;font-size:14px;position:relative}
+.logo-sym::after{content:'';position:absolute;bottom:-5px;left:5px;width:9px;height:6px;background:#E8870A;clip-path:polygon(0 0,100% 0,0 100%)}
+.logo-txt{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.logo-txt span{color:var(--amber)}
+.biz-pill{background:var(--bg);border-radius:10px;padding:9px 11px;margin-bottom:18px}
+.biz-pill-name{font-size:12px;font-weight:700}
+.biz-pill-slug{font-size:10px;color:var(--muted);margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--brand-light);color:var(--brand)}
+.nav-icon{font-size:15px;width:19px;text-align:center}
+.logout-btn{margin-top:14px;background:none;border:none;font-size:13px;font-weight:600;color:var(--muted);padding:9px 11px;border-radius:10px;text-align:left;width:100%;cursor:pointer}
+.logout-btn:hover{background:var(--rl);color:var(--rd)}
+.main-content{flex:1;padding:22px;max-width:860px;overflow-x:hidden}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:6px 0}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;cursor:pointer;border:none;background:none;color:var(--muted);font-family:inherit;transition:.15s}
+.bn-item.active{color:var(--brand)}
+.bn-icon{font-size:19px}
+.bn-label{font-size:9px;font-weight:700}
+@media(max-width:768px){.sidebar{display:none}.main-content{padding:14px 12px 80px}.bottom-nav{display:flex}}
+/* LOGIN */
+#screen-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(160deg,#0D0D0F,#1a1025)}
+.login-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:24px;padding:36px 28px;width:100%;max-width:390px;backdrop-filter:blur(20px)}
+.login-logo{text-align:center;margin-bottom:26px}
+.login-sym{width:52px;height:46px;border-radius:14px 14px 14px 5px;background:linear-gradient(135deg,var(--amber),#E8870A);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 10px;position:relative;box-shadow:0 6px 20px rgba(245,166,35,.3)}
+.login-sym::after{content:'';position:absolute;bottom:-7px;left:8px;width:13px;height:8px;background:#E8870A;clip-path:polygon(0 0,100% 0,0 100%)}
+.login-brand{font-size:22px;font-weight:800;color:#F7F5F0;letter-spacing:-.02em}
+.login-brand span{color:var(--amber)}
+.login-tagline{font-size:11px;color:rgba(247,245,240,.4);margin-top:2px;font-weight:500}
+.login-tabs{display:flex;background:rgba(255,255,255,.06);border-radius:9px;padding:3px;margin-bottom:20px}
+.login-tab{flex:1;padding:8px;border:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:rgba(247,245,240,.4);transition:.2s}
+.login-tab.active{background:rgba(255,255,255,.1);color:#F7F5F0}
+.google-btn{width:100%;padding:12px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:11px;color:#F7F5F0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:.2s;margin-bottom:16px}
+.google-btn:hover{background:rgba(255,255,255,.1)}
+.login-divider{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.login-divider span{flex:1;height:1px;background:rgba(255,255,255,.08)}
+.login-divider p{font-size:11px;color:rgba(247,245,240,.3)}
+.dark-field{margin-bottom:12px}
+.dark-field label{display:block;font-size:10px;font-weight:700;color:rgba(247,245,240,.5);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.dark-input{width:100%;border:1.5px solid rgba(255,255,255,.1);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;outline:none;background:rgba(255,255,255,.05);color:#F7F5F0;transition:.2s}
+.dark-input:focus{border-color:var(--brand)}
+.dark-input::placeholder{color:rgba(247,245,240,.25)}
+.login-submit{width:100%;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
+.login-submit:hover{background:var(--brand-dark)}
+.login-footer{text-align:center;margin-top:14px;font-size:11px;color:rgba(247,245,240,.3)}
+.login-footer a{color:var(--amber);font-weight:600;cursor:pointer}
+/* ONBOARDING */
+#screen-onboarding{min-height:100vh;background:var(--bg)}
+.onb-header{background:#fff;border-bottom:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.onb-logo{font-size:17px;font-weight:800}
+.onb-logo span{color:var(--amber)}
+.onb-skip{font-size:11px;color:var(--muted);font-weight:600;cursor:pointer;text-decoration:underline}
+.onb-progress{background:#fff;padding:14px 18px 0;border-bottom:1px solid var(--border)}
+.progress-steps{display:flex;align-items:center}
+.ps{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.ps:not(:last-child)::after{content:'';position:absolute;left:50%;top:10px;width:100%;height:2px;background:var(--border);z-index:0}
+.ps.done:not(:last-child)::after{background:var(--brand)}
+.ps-dot{width:20px;height:20px;border-radius:50%;background:var(--border);color:var(--muted);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:.25s;flex-shrink:0}
+.ps.active .ps-dot{background:var(--brand);color:#fff;box-shadow:0 0 0 4px var(--brand-light)}
+.ps.done .ps-dot{background:var(--brand);color:#fff}
+.ps-label{font-size:8px;font-weight:700;color:var(--muted);padding-bottom:10px;white-space:nowrap}
+.ps.active .ps-label,.ps.done .ps-label{color:var(--brand)}
+.onb-body{max-width:460px;margin:0 auto;padding:24px 14px 100px}
+.step-hero{text-align:center;margin-bottom:22px}
+.step-emoji{font-size:44px;margin-bottom:10px}
+.step-title{font-size:21px;font-weight:800;margin-bottom:5px;letter-spacing:-.01em}
+.step-sub{font-size:13px;color:var(--muted);line-height:1.55;max-width:300px;margin:0 auto}
+.ramos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.ramo-card{border:2px solid var(--border);border-radius:11px;padding:12px 6px;text-align:center;cursor:pointer;transition:.2s;background:#fff}
+.ramo-card.on{border-color:var(--brand);background:var(--brand-light)}
+.ramo-icon{font-size:22px;margin-bottom:4px}
+.ramo-name{font-size:10px;font-weight:700;color:var(--text)}
+.ramo-card.on .ramo-name{color:var(--brand)}
+.suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.sug-chip{border:1.5px solid var(--border);border-radius:20px;padding:6px 11px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;background:#fff}
+.sug-chip:hover,.sug-chip.used{border-color:var(--brand);color:var(--brand);background:var(--brand-light)}
+.sug-chip.used{opacity:.5;pointer-events:none}
+.ei-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.ei-row:last-child{border-bottom:none}
+.ei-name{flex:1;font-size:13px;font-weight:600}
+.ei-del{background:var(--rl);color:var(--rd);border:none;border-radius:7px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer}
+.ei-add{display:flex;gap:7px;margin-top:10px}
+.ei-add input{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-family:inherit;font-size:13px;outline:none;transition:.2s}
+.ei-add input:focus{border-color:var(--brand)}
+.bonus-cfg-card{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:var(--radius);padding:18px;border:2px solid #F59E0B;margin-bottom:12px}
+.bcfg-t{font-size:13px;font-weight:800;color:#92400E;margin-bottom:3px}
+.bcfg-s{font-size:11px;color:#78350F;margin-bottom:12px;line-height:1.4}
+.bcfg-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+.bcfg-toggle:last-child{border-bottom:none}
+.bcfg-toggle .tt{font-size:12px;font-weight:700;color:#92400E}
+.bcfg-toggle .ts{font-size:10px;color:#78350F;margin-top:1px}
+.bonus-val-row{display:flex;gap:10px;margin-top:10px}
+.bonus-val-row .field{flex:1;margin-bottom:0}
+.amber-toggle{width:38px;height:21px;border-radius:99px;background:rgba(0,0,0,.15);position:relative;cursor:pointer;transition:.25s;flex-shrink:0}
+.amber-toggle.on{background:#F59E0B}
+.amber-toggle::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.25s}
+.amber-toggle.on::after{left:20px}
+.summary-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.summary-row:last-child{border-bottom:none}
+.sum-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.sum-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1px}
+.sum-val{font-size:13px;font-weight:600}
+.onb-bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:12px 16px;z-index:10}
+.onb-nav{display:flex;gap:9px;max-width:460px;margin:0 auto}
+.btn-back{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:12px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn-next{flex:1;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+/* DASHBOARD */
+.dash-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.dash-biz-logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--brand),#A78BFA);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.dash-biz-name{font-size:18px;font-weight:800}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.kpi{background:var(--surface);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow)}
+.kv{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.kl{font-size:10px;color:var(--muted);font-weight:600;margin-top:2px}
+.fi{background:var(--surface);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:9px}
+.fi-top{display:flex;justify-content:space-between;margin-bottom:5px}
+.fi-items-list{display:flex;flex-direction:column;gap:3px;margin-bottom:5px}
+.fi-item-r{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+.fi-item-n{color:var(--muted);font-weight:600}
+.fi-comment{font-size:12px;color:var(--muted);line-height:1.5}
+.qr-card{background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:var(--radius);padding:18px;color:#fff;display:flex;gap:14px;align-items:center;margin-bottom:14px}
+.qr-box{width:68px;height:68px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.qr-text .t1{font-size:14px;font-weight:800;margin-bottom:3px}
+.qr-text .t2{font-size:11px;opacity:.8;line-height:1.4}
+.qr-acts{display:flex;gap:6px;margin-top:8px}
+.qr-btn{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:7px;padding:6px 10px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
+/* CLIENTES */
+.topbar-search{display:flex;gap:8px;margin-bottom:14px}
+.topbar-search input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;outline:none;background:#fff;transition:.2s}
+.topbar-search input:focus{border-color:var(--brand)}
+.ci{background:var(--surface);border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow);margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.ci-av{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#A78BFA);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:700}
+.ci-phone{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px}
+.ci-meta{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.ci-acts{display:flex;gap:5px;flex-shrink:0}
+.import-card{background:linear-gradient(135deg,#25D366,#128C7E);border-radius:var(--radius);padding:15px 17px;color:#fff;display:flex;align-items:center;gap:12px;margin-bottom:12px;cursor:pointer}
+/* LISTA */
+.list-header{background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:var(--radius);padding:16px 18px;color:#fff;margin-bottom:12px}
+.lh-stats{display:flex;gap:8px;margin:10px 0}
+.lh-stat{background:rgba(255,255,255,.15);border-radius:8px;padding:7px 10px;flex:1;text-align:center}
+.lh-sv{font-size:17px;font-weight:800}
+.lh-sl{font-size:9px;opacity:.8;margin-top:1px}
+.lh-acts{display:flex;gap:7px}
+.lh-btn{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;flex:1}
+.lh-btn.wpp{background:#25D366}
+.list-item{background:var(--surface);border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow);margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.li-av{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--brand),#A78BFA);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.li-info{flex:1;min-width:0}
+.li-name{font-size:13px;font-weight:700}
+.li-phone{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px}
+.li-time{font-size:10px;color:var(--muted);margin-top:2px}
+.li-time span{background:var(--bg);border-radius:4px;padding:1px 5px;font-weight:600}
+.li-acts{display:flex;gap:5px;flex-shrink:0}
+.search-result-item{background:var(--surface);border-radius:10px;padding:9px 13px;box-shadow:var(--shadow);margin-bottom:5px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:.15s}
+.search-result-item:hover{background:var(--brand-light)}
+.sr-add-btn{margin-left:auto;background:var(--brand-light);color:var(--brand);border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}
+/* AVALIAR */
+#screen-avaliar{min-height:100vh;background:var(--bg)}
+.eval-hero{background:linear-gradient(135deg,var(--brand),#A78BFA);padding:22px 18px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.eval-hero::before{content:'⭐';position:absolute;font-size:100px;opacity:.07;top:-15px;right:-10px}
+.eval-biz-logo{width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 8px}
+.eval-biz-name{font-size:18px;font-weight:800;margin-bottom:3px}
+.eval-biz-type{font-size:11px;opacity:.8;font-weight:600}
+.bonus-pill{background:rgba(255,255,255,.16);border-radius:9px;padding:9px 13px;margin-top:11px;display:flex;align-items:center;gap:8px;text-align:left}
+.bp-icon{font-size:18px;flex-shrink:0}
+.bp-t1{font-size:12px;font-weight:700}
+.bp-t2{font-size:10px;opacity:.8;margin-top:1px}
+.eval-wrap{max-width:460px;margin:0 auto;padding:16px 14px 64px}
+.eval-item-card{background:var(--surface);border-radius:var(--radius);padding:17px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+.eic-title{font-size:13px;font-weight:700;margin-bottom:9px}
+.emoji-row{display:flex;gap:5px;margin-bottom:9px}
+.emoji-btn{font-size:24px;cursor:pointer;opacity:.3;transition:.15s;border-radius:7px;padding:3px 5px;border:none;background:none}
+.emoji-btn.lit{opacity:1;background:var(--brand-light);transform:scale(1.12)}
+.mini-stars{display:flex;gap:3px;margin-bottom:9px}
+.mstar{font-size:24px;cursor:pointer;opacity:.3;transition:.15s;border:none;background:none}
+.mstar.lit{opacity:1;transform:scale(1.06)}
+.eic-comment{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-family:inherit;font-size:12px;resize:none;height:56px;outline:none;transition:.2s;color:var(--text)}
+.eic-comment:focus{border-color:var(--brand)}
+.id-card{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;border:2px solid #F59E0B}
+.id-top{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.id-title{font-size:13px;font-weight:800;color:#92400E}
+.id-sub{font-size:11px;color:#78350F;line-height:1.4;margin-bottom:11px}
+.bonus-cmp{display:flex;gap:7px;margin-bottom:11px}
+.bc{flex:1;background:#fff;border-radius:8px;padding:9px;text-align:center}
+.bc.hi{background:#F59E0B;color:#fff}
+.bc-val{font-size:16px;font-weight:800}
+.bc-lbl{font-size:9px;font-weight:700;opacity:.7;margin-top:1px}
+.bc.hi .bc-lbl{color:rgba(0,0,0,.5)}
+.id-inputs{display:flex;flex-direction:column;gap:7px}
+.id-inp{width:100%;border:1.5px solid #F59E0B;border-radius:9px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none;background:#fff;color:var(--text)}
+.id-skip{text-align:center;font-size:11px;color:#78350F;margin-top:8px;cursor:pointer;font-weight:600;text-decoration:underline}
+.btn-submit-eval{width:100%;padding:14px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
+/* SUCESSO */
+#screen-sucesso{min-height:100vh;background:var(--bg)}
+.suc-hero{padding:28px 18px;text-align:center;color:#fff;margin-bottom:0}
+.suc-icon{font-size:52px;margin-bottom:10px}
+.suc-title{font-size:20px;font-weight:800;margin-bottom:5px}
+.suc-sub{font-size:12px;opacity:.85;line-height:1.5}
+.suc-wrap{max-width:460px;margin:0 auto;padding:16px 14px 48px}
+.code-block{background:var(--bg);border:2px dashed var(--gold);border-radius:11px;padding:14px;margin-bottom:13px;text-align:center}
+.code-text{font-family:'DM Mono',monospace;font-size:24px;font-weight:700;letter-spacing:.1em}
+.code-hint{font-size:11px;color:var(--muted);margin-top:4px}
+/* RESGATAR */
+.resgate-hero{background:linear-gradient(135deg,var(--amber),var(--gold));border-radius:var(--radius);padding:18px;color:#fff;margin-bottom:13px;text-align:center}
+.code-row{display:flex;gap:7px;margin-top:11px}
+.code-inp{flex:1;border:none;border-radius:9px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;letter-spacing:.06em;outline:none;color:var(--text);text-transform:uppercase}
+.code-check-btn{background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:9px;padding:10px 14px;font-family:inherit;font-weight:700;cursor:pointer;font-size:12px}
+.valid-card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+.vc-top{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.vc-icon{font-size:26px}
+.vc-title{font-size:14px;font-weight:800}
+.vc-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.vc-detail{background:var(--bg);border-radius:9px;padding:11px;margin-bottom:10px}
+.vr{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)}
+.vr:last-child{border-bottom:none}
+.vr span:first-child{color:var(--muted)}.vr span:last-child{font-weight:700}
+.qr-scan{border:2px dashed var(--border);border-radius:11px;padding:22px;text-align:center;margin-bottom:12px;cursor:pointer;transition:.2s}
+.qr-scan:hover{border-color:var(--brand);background:var(--brand-light)}
+/* CONFIG */
+.tpl-card{background:var(--surface);border-radius:var(--radius);padding:17px 18px;box-shadow:var(--shadow);margin-bottom:11px}
+.tpl-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.tpl-title{font-size:12px;font-weight:700;flex:1}
+.tpl-badge{border-radius:20px;padding:2px 8px;font-size:9px;font-weight:700}
+.tpl-vars{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+.tpl-var{background:var(--brand-light);color:var(--brand);border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;font-family:'DM Mono',monospace;cursor:pointer}
+.tpl-ta{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:12px;outline:none;resize:vertical;min-height:75px;line-height:1.5}
+.tpl-ta:focus{border-color:var(--brand)}
+.tpl-acts{display:flex;gap:6px;margin-top:8px}
+.eic-cfg-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.eic-cfg-row:last-child{border-bottom:none}
+.eic-cfg-name{flex:1;font-size:12px;font-weight:600}
+@keyframes bounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="loading-overlay hidden" id="loading">Carregando…</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-sym">⭐</div>
+      <div class="login-brand">Avalia<span>Aí</span></div>
+      <div class="login-tagline">Feedbacks que fazem crescer</div>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('entrar')">Entrar</button>
+      <button class="login-tab" onclick="switchLoginTab('cadastro')">Criar conta</button>
+    </div>
+    <div id="login-view">
+      <button class="google-btn" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continuar com Google
+      </button>
+      <div class="login-divider"><span></span><p>ou e-mail</p><span></span></div>
+      <div class="dark-field"><label>E-mail</label><input class="dark-input" type="email" id="login-email" placeholder="seu@email.com"/></div>
+      <div class="dark-field"><label>Senha</label><input class="dark-input" type="password" id="login-senha" placeholder="••••••••"/></div>
+      <button class="login-submit" onclick="loginEmail()">Entrar →</button>
+      <div class="login-footer">Não tem conta? <a onclick="switchLoginTab('cadastro')">Criar grátis</a></div>
+    </div>
+    <div id="cadastro-view" class="hidden">
+      <button class="google-btn" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Cadastrar com Google
+      </button>
+      <div class="login-divider"><span></span><p>ou e-mail</p><span></span></div>
+      <div class="dark-field"><label>Nome</label><input class="dark-input" type="text" id="cad-nome" placeholder="Seu nome"/></div>
+      <div class="dark-field"><label>E-mail</label><input class="dark-input" type="email" id="cad-email" placeholder="seu@email.com"/></div>
+      <div class="dark-field"><label>Senha</label><input class="dark-input" type="password" id="cad-senha" placeholder="Mínimo 8 caracteres"/></div>
+      <button class="login-submit" onclick="cadastrarEmail()">Criar conta grátis →</button>
+      <div class="login-footer">Já tem conta? <a onclick="switchLoginTab('entrar')">Entrar</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ONBOARDING ══ -->
+<div id="screen-onboarding" class="hidden">
+  <div class="onb-header">
+    <div class="onb-logo">Avalia<span>Aí</span></div>
+    <div class="onb-skip" onclick="pularOnboarding()">Pular</div>
+  </div>
+  <div class="onb-progress">
+    <div class="progress-steps" id="onb-steps">
+      <div class="ps active"><div class="ps-dot">1</div><div class="ps-label">Negócio</div></div>
+      <div class="ps"><div class="ps-dot">2</div><div class="ps-label">Ramo</div></div>
+      <div class="ps"><div class="ps-dot">3</div><div class="ps-label">Avaliações</div></div>
+      <div class="ps"><div class="ps-dot">4</div><div class="ps-label">Bônus</div></div>
+      <div class="ps"><div class="ps-dot">5</div><div class="ps-label">Pronto!</div></div>
+    </div>
+  </div>
+  <div class="onb-body">
+    <!-- Step 1 -->
+    <div id="onb-step-1">
+      <div class="step-hero"><div class="step-emoji">🏪</div><div class="step-title">Como se chama seu negócio?</div><div class="step-sub">Este nome aparecerá para os clientes.</div></div>
+      <div class="card">
+        <div class="field"><label>Nome do estabelecimento</label><input type="text" id="onb-nome" placeholder="Ex: Lava-Jato do Zé"/></div>
+        <div class="field"><label>Link personalizado</label>
+          <div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden" id="slug-wrap">
+            <span style="padding:10px;font-size:11px;color:var(--muted);background:var(--bg);border-right:1.5px solid var(--border);white-space:nowrap">avaliai.app/</span>
+            <input type="text" id="onb-slug" placeholder="lavajatodoze" style="border:none;outline:none;padding:10px 12px;font-family:inherit;font-size:13px;flex:1;background:#fff;color:var(--text)"/>
+          </div>
+        </div>
+        <div class="field"><label>WhatsApp de contato</label><input type="tel" id="onb-whatsapp" placeholder="(11) 99999-9999"/></div>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div id="onb-step-2" class="hidden">
+      <div class="step-hero"><div class="step-emoji">🎯</div><div class="step-title">Qual é o ramo?</div><div class="step-sub">Vamos sugerir os melhores itens de avaliação.</div></div>
+      <div class="ramos-grid">
+        <div class="ramo-card on" onclick="selRamo(this,'lava_jato')"><div class="ramo-icon">🚗</div><div class="ramo-name">Lava-Jato</div></div>
+        <div class="ramo-card" onclick="selRamo(this,'restaurante')"><div class="ramo-icon">🍔</div><div class="ramo-name">Restaurante</div></div>
+        <div class="ramo-card" onclick="selRamo(this,'salao')"><div class="ramo-icon">💇</div><div class="ramo-name">Salão</div></div>
+        <div class="ramo-card" onclick="selRamo(this,'loja')"><div class="ramo-icon">🛍️</div><div class="ramo-name">Loja</div></div>
+        <div class="ramo-card" onclick="selRamo(this,'saude')"><div class="ramo-icon">🏥</div><div class="ramo-name">Saúde</div></div>
+        <div class="ramo-card" onclick="selRamo(this,'outro')"><div class="ramo-icon">📦</div><div class="ramo-name">Outro</div></div>
+      </div>
+      <div class="card"><div class="field" style="margin-bottom:0"><label>Cidade / Estado</label><input type="text" id="onb-cidade" placeholder="Ex: Barueri, SP"/></div></div>
+    </div>
+    <!-- Step 3 -->
+    <div id="onb-step-3" class="hidden">
+      <div class="step-hero"><div class="step-emoji">⭐</div><div class="step-title">O que o cliente vai avaliar?</div><div class="step-sub">Cada item terá estrelas, emoji e comentário.</div></div>
+      <div class="sec-title">Sugestões</div>
+      <div class="suggestions" id="sugestoes"></div>
+      <div class="card">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:9px">Itens adicionados <b id="itens-count" style="color:var(--brand)">(0)</b></div>
+        <div id="onb-itens-list"></div>
+        <div class="ei-add"><input id="new-item-input" type="text" placeholder="Adicionar item personalizado…"/><button class="btn btn-ghost" onclick="addOnbItem()">+ Add</button></div>
+      </div>
+    </div>
+    <!-- Step 4 -->
+    <div id="onb-step-4" class="hidden">
+      <div class="step-hero"><div class="step-emoji">🎁</div><div class="step-title">Configurar bônus?</div><div class="step-sub">O bônus incentiva o retorno dos clientes.</div></div>
+      <div class="bonus-cfg-card">
+        <div class="bcfg-t">🎁 Configurar bônus</div>
+        <div class="bcfg-s">Defina o prêmio para quem avalia.</div>
+        <div class="field"><label style="color:#92400E">Tipo de bônus</label>
+          <select id="bonus-tipo"><option value="percentual">% de desconto</option><option value="valor_fixo">Valor fixo</option><option value="servico_gratis">Serviço grátis</option><option value="personalizado">Personalizado</option></select>
+        </div>
+        <div class="bcfg-toggle">
+          <div><div class="tt">Bônus para anônimos</div><div class="ts">Desative para exigir identificação</div></div>
+          <div class="amber-toggle on" id="toggle-anon-onb" onclick="toggleAnonOnb()"></div>
+        </div>
+        <div class="field-row" style="margin-top:10px;margin-bottom:0">
+          <div class="field" id="anon-val-onb"><label style="color:#92400E">Anônimo (%)</label><input type="number" id="bonus-anon" value="5"/></div>
+          <div class="field"><label style="color:#92400E">Identificado (%)</label><input type="number" id="bonus-id" value="15"/></div>
+        </div>
+        <div class="field-row" style="margin-top:10px;margin-bottom:0">
+          <div class="field"><label style="color:#92400E">Prefixo</label><input type="text" id="bonus-prefixo" value="AVA" maxlength="4"/></div>
+          <div class="field"><label style="color:#92400E">Validade (dias)</label><input type="number" id="bonus-validade" value="30"/></div>
+        </div>
+      </div>
+    </div>
+    <!-- Step 5 -->
+    <div id="onb-step-5" class="hidden">
+      <div class="step-hero">
+        <div class="step-emoji" style="animation:bounce .6s ease infinite alternate">🎉</div>
+        <div class="step-title">Tudo configurado!</div>
+        <div class="step-sub">Veja o resumo e comece a receber avaliações.</div>
+      </div>
+      <div class="card" id="onb-resumo"></div>
+      <button class="btn btn-primary btn-full" style="font-size:15px" onclick="irDashboard()">Ir para o Dashboard →</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px" id="copiar-link-btn">📲 Copiar link</button>
+    </div>
+  </div>
+  <div class="onb-bottom">
+    <div class="onb-nav">
+      <button class="btn-back hidden" id="onb-btn-back" onclick="onbPrev()">← Voltar</button>
+      <button class="btn-next" id="onb-btn-next" onclick="onbNext()">Próximo →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="screen-app" class="hidden">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><div class="logo-sym">⭐</div><div class="logo-txt">Avalia<span>Aí</span></div></div>
+      <div class="biz-pill"><div class="biz-pill-name" id="sidebar-biz-name">—</div><div class="biz-pill-slug" id="sidebar-biz-slug">—</div></div>
+      <nav class="nav">
+        <button class="nav-item active" onclick="navTo('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
+        <button class="nav-item" onclick="navTo('clientes')"><span class="nav-icon">👥</span>Clientes</button>
+        <button class="nav-item" onclick="navTo('lista')"><span class="nav-icon">📋</span>Lista</button>
+        <button class="nav-item" onclick="navTo('resgatar')"><span class="nav-icon">✅</span>Resgatar</button>
+        <button class="nav-item" onclick="navTo('config')"><span class="nav-icon">⚙️</span>Config</button>
+      </nav>
+      <div style="margin-top:auto;padding:10px 11px;border-top:1px solid var(--border);margin-top:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:600">LOGADO COMO</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sidebar-user-email">—</div>
+      </div>
+      <button class="logout-btn" onclick="fazerLogout()">🚪 Sair</button>
+    </aside>
+    <main class="main-content">
+      <!-- DASHBOARD -->
+      <div id="page-dashboard">
+        <div style="background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:var(--radius);padding:18px 20px;color:#fff;margin-bottom:14px">
+          <div style="font-size:12px;opacity:.8;margin-bottom:2px">👋 Bem-vindo de volta,</div>
+          <div style="font-size:20px;font-weight:800" id="user-bar-name">—</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px" id="user-bar-email">—</div>
+        </div>
+        <div class="dash-header">
+          <div class="dash-biz-logo">🏪</div>
+          <div><div class="dash-biz-name" id="dash-nome">—</div><div style="font-size:11px;color:var(--muted)">Dashboard de avaliações</div></div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kv" id="kpi-nota">—</div><div class="kl">Nota média</div></div>
+          <div class="kpi"><div class="kv" id="kpi-avals">—</div><div class="kl">Avaliações</div></div>
+          <div class="kpi"><div class="kv" id="kpi-clientes">—</div><div class="kl">Clientes</div></div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kv" id="kpi-bonus-g" style="color:var(--gold)">—</div><div class="kl">Bônus gerados</div></div>
+          <div class="kpi"><div class="kv" id="kpi-bonus-r" style="color:var(--gd)">—</div><div class="kl">Resgatados</div></div>
+          <div class="kpi"><div class="kv" id="kpi-id" style="color:var(--brand)">—</div><div class="kl">Identificados</div></div>
+        </div>
+        <div class="card" id="dash-media-card" style="display:none">
+          <div class="sec-title">Média por item</div>
+          <div id="dash-media-itens"></div>
+        </div>
+        <div class="qr-card">
+          <div class="qr-box"><canvas id="qr-canvas" width="60" height="60"></canvas></div>
+          <div class="qr-text">
+            <div class="t1">Link de avaliação</div>
+            <div class="t2" id="dash-link-text">—</div>
+            <div class="qr-acts">
+              <button class="qr-btn" onclick="copiarLink()">🔗 Copiar</button>
+              <button class="qr-btn" onclick="abrirAvaliar()">👁 Ver tela</button>
+            </div>
+          </div>
+        </div>
+        <div class="sec-title">Últimas avaliações</div>
+        <div id="dash-feedbacks"><div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Nenhuma avaliação ainda</div></div>
+      </div>
+      <!-- CLIENTES -->
+      <div id="page-clientes" class="hidden">
+        <div class="import-card" onclick="openModal('m-import')">
+          <div style="font-size:26px;flex-shrink:0">📱</div>
+          <div><div style="font-size:13px;font-weight:800">Importar do WhatsApp</div><div style="font-size:10px;opacity:.85;line-height:1.4">Suba .vcf ou .csv da agenda</div></div>
+          <span style="margin-left:auto;opacity:.7">›</span>
+        </div>
+        <div class="topbar-search">
+          <input type="text" id="busca-clientes" placeholder="🔍  Buscar…" oninput="buscarClientes(this.value)"/>
+          <button class="btn btn-primary" onclick="openModal('m-novo-cliente')">+ Novo</button>
+        </div>
+        <div id="lista-clientes"><div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Nenhum cliente ainda</div></div>
+      </div>
+      <!-- LISTA -->
+      <div id="page-lista" class="hidden">
+        <div class="card" style="background:linear-gradient(135deg,var(--brand-light),#fff);border:1.5px solid var(--brand)">
+          <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:12px">➕ Adicionar cliente à lista</div>
+          <div style="position:relative;margin-bottom:10px">
+            <div style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">🔍</div>
+            <input type="text" id="busca-lista" placeholder="Digite nome ou telefone do cliente…" 
+              style="width:100%;border:2px solid var(--brand);border-radius:12px;padding:13px 13px 13px 40px;font-family:inherit;font-size:14px;outline:none;background:#fff;font-weight:500;box-shadow:0 2px 8px rgba(108,59,245,.1)"
+              oninput="buscarParaLista(this.value)"/>
+          </div>
+          <div id="lista-busca-results"></div>
+        </div>
+        <div class="list-header">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <div><div style="font-size:15px;font-weight:800">📋 Lista de Disparo</div><div style="font-size:11px;opacity:.8;margin-top:1px" id="lista-count">0 na fila</div></div>
+          </div>
+          <div class="lh-stats">
+            <div class="lh-stat"><div class="lh-sv" id="lista-stat-fila">0</div><div class="lh-sl">Na fila</div></div>
+            <div class="lh-stat"><div class="lh-sv" id="lista-stat-env">0</div><div class="lh-sl">Enviados</div></div>
+          </div>
+          <div class="lh-acts">
+            <button class="lh-btn wpp" onclick="dispararTodos()">📲 Disparar todos</button>
+            <button class="lh-btn" onclick="openModal('m-agendar')">⏰ Agendar</button>
+          </div>
+        </div>
+        <div id="lista-disparo-items"><div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Lista vazia</div></div>
+      </div>
+      <!-- RESGATAR -->
+      <div id="page-resgatar" class="hidden">
+        <div class="resgate-hero">
+          <div style="font-size:34px;margin-bottom:6px">🎁</div>
+          <div style="font-size:15px;font-weight:800;margin-bottom:2px">Validar bônus do cliente</div>
+          <div style="font-size:11px;opacity:.85">Digite o código ou escaneie o QR</div>
+          <div class="code-row">
+            <input class="code-inp" id="codigo-input" placeholder="AVA-X7K2-M9" oninput="this.value=this.value.toUpperCase()"/>
+            <button class="code-check-btn" onclick="verificarCodigo()">Verificar →</button>
+          </div>
+        </div>
+        <div class="qr-scan" onclick="showToast('Câmera disponível no app nativo 📱')">
+          <div style="font-size:30px;margin-bottom:6px">📷</div>
+          <div style="font-size:12px;font-weight:600;color:var(--muted)">Toque para escanear QR Code</div>
+        </div>
+        <div id="codigo-valido" class="hidden">
+          <div class="valid-card">
+            <div class="vc-top"><div class="vc-icon">✅</div><div><div class="vc-title">Código válido!</div><div class="vc-sub">Bônus disponível</div></div></div>
+            <div class="vc-detail" id="codigo-detalhes"></div>
+            <button class="btn btn-green btn-full" id="btn-confirmar-resgate" onclick="confirmarResgate()">✅ Confirmar resgate</button>
+          </div>
+        </div>
+        <div id="codigo-usado" class="hidden">
+          <div class="valid-card">
+            <div class="vc-top"><div class="vc-icon">⛔</div><div><div class="vc-title" style="color:var(--rd)">Já utilizado</div><div class="vc-sub">Este bônus já foi resgatado</div></div></div>
+            <div class="vc-detail" id="codigo-usado-detalhe"></div>
+          </div>
+        </div>
+        <div id="codigo-invalido" class="hidden">
+          <div class="valid-card">
+            <div class="vc-top"><div class="vc-icon">❌</div><div><div class="vc-title" style="color:var(--rd)">Código inválido</div><div class="vc-sub">Não encontrado ou expirado</div></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- CONFIG -->
+      <div id="page-config" class="hidden">
+        <div class="sec-title">Itens de Avaliação</div>
+        <div class="card">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:9px">Cliente avalia cada item com estrelas + emoji + comentário.</div>
+          <div id="cfg-itens-list"></div>
+          <div class="ei-add" style="margin-top:10px">
+            <input id="cfg-new-item" type="text" placeholder="Novo item (ex: 🧴 Polimento)"/>
+            <button class="btn btn-primary" onclick="addCfgItem()">+ Add</button>
+          </div>
+          <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarItens()">💾 Salvar itens</button>
+        </div>
+        <div class="sec-title">Configuração de Bônus</div>
+        <div class="bonus-cfg-card">
+          <div class="bcfg-t">🎁 Bônus para avaliadores</div>
+          <div class="field"><label style="color:#92400E">Tipo</label>
+            <select id="cfg-bonus-tipo"><option value="percentual">% de desconto</option><option value="valor_fixo">Valor fixo</option><option value="servico_gratis">Serviço grátis</option><option value="personalizado">Personalizado</option></select>
+          </div>
+          <div class="bcfg-toggle">
+            <div><div class="tt">Bônus para anônimos</div><div class="ts">Desative para exigir ID</div></div>
+            <div class="amber-toggle on" id="cfg-toggle-anon" onclick="toggleAnonCfg()"></div>
+          </div>
+          <div class="field-row" style="margin-top:10px;margin-bottom:4px">
+            <div class="field" id="cfg-anon-field"><label style="color:#92400E">Anônimo (%)</label><input type="number" id="cfg-bonus-anon" value="5"/></div>
+            <div class="field"><label style="color:#92400E">Identificado (%)</label><input type="number" id="cfg-bonus-id" value="15"/></div>
+          </div>
+          <div class="field-row" style="margin-bottom:0">
+            <div class="field"><label style="color:#92400E">Prefixo</label><input type="text" id="cfg-bonus-prefixo" value="AVA" maxlength="4"/></div>
+            <div class="field"><label style="color:#92400E">Validade (dias)</label><input type="number" id="cfg-bonus-validade" value="30"/></div>
+          </div>
+          <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarBonusConfig()">💾 Salvar bônus</button>
+        </div>
+        <div class="sec-title">Mensagens WhatsApp</div>
+        <div class="tpl-card">
+          <div class="tpl-head"><div style="font-size:16px">📲</div><div class="tpl-title">Pedido de avaliação</div><div class="tpl-badge bg">✓ Ativo</div></div>
+          <div class="tpl-vars">
+            <span class="tpl-var" onclick="insVar('tpl-pedido','{nome}')">{nome}</span>
+            <span class="tpl-var" onclick="insVar('tpl-pedido','{empresa}')">{empresa}</span>
+            <span class="tpl-var" onclick="insVar('tpl-pedido','{link}')">{link}</span>
+            <span class="tpl-var" onclick="insVar('tpl-pedido','{bonus_id}')">{bonus_id}</span>
+          </div>
+          <textarea class="tpl-ta" id="tpl-pedido"></textarea>
+          <div class="tpl-acts">
+            <button class="btn btn-ghost" onclick="prevTpl('tpl-pedido')">👁 Prévia</button>
+            <button class="btn btn-primary" style="flex:1" onclick="salvarTemplate('pedido_avaliacao','tpl-pedido')">💾 Salvar</button>
+          </div>
+        </div>
+        <div class="tpl-card">
+          <div class="tpl-head"><div style="font-size:16px">🎁</div><div class="tpl-title">Envio do código</div><div class="tpl-badge bg">✓ Auto</div></div>
+          <div class="tpl-vars">
+            <span class="tpl-var" onclick="insVar('tpl-codigo','{nome}')">{nome}</span>
+            <span class="tpl-var" onclick="insVar('tpl-codigo','{empresa}')">{empresa}</span>
+            <span class="tpl-var" onclick="insVar('tpl-codigo','{codigo}')">{codigo}</span>
+            <span class="tpl-var" onclick="insVar('tpl-codigo','{bonus_id}')">{bonus_id}</span>
+            <span class="tpl-var" onclick="insVar('tpl-codigo','{validade}')">{validade}</span>
+          </div>
+          <textarea class="tpl-ta" id="tpl-codigo"></textarea>
+          <div class="tpl-acts">
+            <button class="btn btn-ghost" onclick="prevTpl('tpl-codigo')">👁 Prévia</button>
+            <button class="btn btn-primary" style="flex:1" onclick="salvarTemplate('envio_codigo','tpl-codigo')">💾 Salvar</button>
+          </div>
+        </div>
+        <div class="sec-title">Dados do negócio</div>
+        <div class="card">
+          <div class="field"><label>Nome</label><input type="text" id="cfg-nome-negocio"/></div>
+          <div class="field"><label>Ramo</label><select id="cfg-ramo"><option value="lava_jato">🚗 Lava-Jato</option><option value="restaurante">🍔 Restaurante</option><option value="salao">💇 Salão</option><option value="loja">🛍️ Loja</option><option value="saude">🏥 Saúde</option><option value="outro">📦 Outro</option></select></div>
+          <div class="field"><label>Slug (link)</label>
+            <div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
+              <span style="padding:10px;font-size:11px;color:var(--muted);background:var(--bg);border-right:1.5px solid var(--border);white-space:nowrap">avaliai.app/</span>
+              <input type="text" id="cfg-slug" style="border:none;outline:none;padding:10px 12px;font-family:inherit;font-size:13px;flex:1;background:#fff;color:var(--text)"/>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="salvarNegocio()">💾 Salvar</button>
+        </div>
+
+        <div class="sec-title" style="margin-top:8px">Conta</div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Logado como</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px" id="cfg-user-email">—</div>
+          <button class="btn btn-danger btn-full" onclick="fazerLogout()">🚪 Sair da conta</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <nav class="bottom-nav">
+    <button class="bn-item active" onclick="navTo('dashboard')"><span class="bn-icon">📊</span><span class="bn-label">Dashboard</span></button>
+    <button class="bn-item" onclick="navTo('clientes')"><span class="bn-icon">👥</span><span class="bn-label">Clientes</span></button>
+    <button class="bn-item" onclick="navTo('lista')"><span class="bn-icon">📋</span><span class="bn-label">Lista</span></button>
+    <button class="bn-item" onclick="navTo('resgatar')"><span class="bn-icon">✅</span><span class="bn-label">Resgatar</span></button>
+    <button class="bn-item" onclick="navTo('config')"><span class="bn-icon">⚙️</span><span class="bn-label">Config</span></button>
+  </nav>
+</div>
+
+<!-- ══ AVALIAR (público) ══ -->
+<div id="screen-avaliar" class="hidden">
+  <div id="avaliar-form">
+    <div class="eval-hero">
+      <div class="eval-biz-logo" id="av-logo">🏪</div>
+      <div class="eval-biz-name" id="av-nome">—</div>
+      <div class="eval-biz-type" id="av-tipo"></div>
+      <div class="bonus-pill">
+        <div class="bp-icon">🎁</div>
+        <div><div class="bp-t1">Avalie e ganhe bônus!</div><div class="bp-t2" id="av-bonus-sub">Identifique-se para bônus maior</div></div>
+      </div>
+    </div>
+    <div class="eval-wrap">
+      <p class="sec-title">Avalie cada item</p>
+      <div id="av-itens-list"></div>
+      <div class="id-card" id="id-card">
+        <div class="id-top"><div style="font-size:20px">🎁</div><div class="id-title">Ganhe bônus maior!</div></div>
+        <div class="id-sub">Identifique-se e receba o código no WhatsApp.</div>
+        <div class="bonus-cmp">
+          <div class="bc"><div class="bc-val" id="av-val-anon">5%</div><div class="bc-lbl">Anônimo</div></div>
+          <div class="bc hi"><div class="bc-val" id="av-val-id">15%</div><div class="bc-lbl">✓ Identificado</div></div>
+        </div>
+        <div class="id-inputs">
+          <input class="id-inp" type="text" id="av-id-nome" placeholder="Seu nome"/>
+          <input class="id-inp" type="tel" id="av-id-tel" placeholder="WhatsApp (11) 99999-9999"/>
+        </div>
+        <div class="id-skip" onclick="skipId()">Prefiro não me identificar</div>
+      </div>
+      <button class="btn-submit-eval" onclick="enviarAvaliacao()">Enviar avaliação e receber bônus 🎁</button>
+    </div>
+  </div>
+  <div id="avaliar-sucesso" class="hidden">
+    <div id="suc-hero-el" class="suc-hero"></div>
+    <div class="suc-wrap">
+      <div class="card" style="text-align:center">
+        <div class="sec-title">Seu bônus</div>
+        <div style="font-size:15px;font-weight:700;color:var(--gold);margin-bottom:13px" id="suc-bonus-desc">—</div>
+        <div class="code-block"><div class="code-text" id="suc-codigo">—</div><div class="code-hint" id="suc-hint">—</div></div>
+        <canvas id="suc-qr" width="100" height="100" style="margin:0 auto 12px;display:block"></canvas>
+        <button class="btn btn-amber btn-full" onclick="copiarCodigo()">📋 Copiar código</button>
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:9px">Mostre este código ou QR no caixa.</div>
+        <button class="btn btn-wpp btn-full" id="suc-wpp-btn" style="display:none">📲 Ver no WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAIS ══ -->
+<div class="modal-bg" id="m-import" onclick="closeModal(event,'m-import')">
+  <div class="modal">
+    <div class="mhandle"></div><div class="mtitle">📱 Importar contatos</div><div class="msub">Exporte sua agenda e suba aqui</div>
+    <div style="border:2px dashed var(--border);border-radius:11px;padding:22px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('file-import').click()">
+      <div style="font-size:28px;margin-bottom:6px">📂</div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted)">Toque para selecionar .vcf ou .csv</div>
+      <input type="file" id="file-import" accept=".vcf,.csv" class="hidden" onchange="importarContatos(this)"/>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="document.getElementById('file-import').click()">Selecionar arquivo</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-novo-cliente" onclick="closeModal(event,'m-novo-cliente')">
+  <div class="modal">
+    <div class="mhandle"></div><div class="mtitle">👤 Novo cliente</div><div class="msub">* obrigatórios</div>
+    <div class="field"><label>Nome *</label><input type="text" id="nc-nome" placeholder="Maria Silva"/></div>
+    <div class="field"><label>WhatsApp *</label><input type="tel" id="nc-whatsapp" placeholder="(11) 99999-9999"/></div>
+    <div class="field"><label>E-mail</label><input type="email" id="nc-email" placeholder="cliente@email.com"/></div>
+    <div class="field"><label>CPF</label><input type="text" id="nc-cpf" placeholder="000.000.000-00"/></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Endereço (opcional)</div>
+    <div class="field-row">
+      <div class="field" style="flex:3"><label>Rua</label><input type="text" id="nc-rua"/></div>
+      <div class="field" style="flex:1"><label>Nº</label><input type="text" id="nc-num"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Bairro</label><input type="text" id="nc-bairro"/></div>
+      <div class="field"><label>CEP</label><input type="text" id="nc-cep"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:2"><label>Cidade</label><input type="text" id="nc-cidade"/></div>
+      <div class="field" style="flex:1"><label>UF</label><select id="nc-uf"><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>CE</option></select></div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="salvarCliente()">Salvar cliente</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-enviar" onclick="closeModal(event,'m-enviar')">
+  <div class="modal">
+    <div class="mhandle"></div><div class="mtitle">📲 Enviar avaliação</div>
+    <div class="msub" id="m-enviar-sub">—</div>
+    <div style="background:#DCF8C6;border-radius:12px 12px 12px 2px;padding:12px 14px;font-size:13px;line-height:1.6;color:#0d1f12;margin-bottom:12px;white-space:pre-line" id="m-enviar-preview">—</div>
+    <button class="btn btn-wpp btn-full" id="m-enviar-wpp-btn">📲 Abrir no WhatsApp</button>
+    <button class="btn btn-primary btn-full" id="m-enviar-next" style="margin-top:7px;display:none">Próximo →</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:7px" onclick="closeModalDirect('m-enviar')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-agendar" onclick="closeModal(event,'m-agendar')">
+  <div class="modal">
+    <div class="mhandle"></div><div class="mtitle">⏰ Agendar disparo</div><div class="msub">Todos os clientes da lista receberão</div>
+    <div class="field"><label>Data</label><input type="date" id="ag-data"/></div>
+    <div class="field"><label>Horário</label><input type="time" id="ag-hora" value="09:00"/></div>
+    <button class="btn btn-primary btn-full" onclick="confirmarAgendamento()">✓ Confirmar</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-preview" onclick="closeModal(event,'m-preview')">
+  <div class="modal">
+    <div class="mhandle"></div><div class="mtitle">👁 Pré-visualização</div><div class="msub">Como o cliente vai receber</div>
+    <div style="background:#E5DDD5;border-radius:12px;padding:13px;margin-bottom:12px">
+      <div style="background:#DCF8C6;border-radius:12px 12px 12px 2px;padding:11px 13px;font-size:13px;line-height:1.6;color:#0d1f12;white-space:pre-line" id="preview-content"></div>
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="closeModalDirect('m-preview')">Fechar</button>
+  </div>
+</div>
+<script>
+const SUPA_URL='https://axxhwkntzxjytwscxgdo.supabase.co'
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4eGh3a250enhqeXR3c2N4Z2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTg3ODUsImV4cCI6MjA5NTk5NDc4NX0.oskX5hISpfY148YzhdrAGJ4MD5ytYC2WCoh0eb0JLtw'
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY)
+
+let S={user:null,negocio:null,bonusConfig:null,itens:[],templates:{},ramo:'lava_jato',onbItens:[],step:1,codigoAtual:null}
+let avS={negocio:null,itens:[],bc:null,token:null,identificado:true}
+
+// ── UTILS ──
+function showToast(m,d=2800){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d)}
+function setLoading(v){document.getElementById('loading').classList.toggle('hidden',!v)}
+function showScreen(id){['screen-login','screen-onboarding','screen-app','screen-avaliar'].forEach(s=>document.getElementById(s).classList.add('hidden'));document.getElementById(id).classList.remove('hidden')}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(e,id){if(e.target.classList.contains('modal-bg'))document.getElementById(id).classList.remove('open')}
+function closeModalDirect(id){document.getElementById(id).classList.remove('open')}
+function ini(n){return(n||'??').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}
+function fmtDate(dt){if(!dt)return'—';return new Date(dt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+function tempoLista(dt){const d=Date.now()-new Date(dt).getTime(),m=Math.floor(d/60000);if(m<60)return m+'min';const h=Math.floor(m/60);if(h<24)return h+'h';const dy=Math.floor(h/24);if(dy<7)return dy+' dia'+(dy>1?'s':'');return Math.floor(dy/7)+' sem'}
+function montarMsg(tpl,v){return(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]||'{'+k+'}')}
+function linkWpp(tel,msg){return'https://wa.me/55'+tel.replace(/\D/g,'')+'?text='+encodeURIComponent(msg)}
+
+// ── AUTH ──
+async function initApp(){
+  const params=new URLSearchParams(location.search)
+  const slug=params.get('slug')
+  const token=params.get('a')
+  if(slug){await initAvaliar(slug,token);return}
+
+  // Captura token do Google OAuth no hash da URL
+  if(location.hash&&location.hash.includes('access_token')){
+    const{data,error}=await sb.auth.getSession()
+    if(data?.session){
+      S.user=data.session.user
+      // Limpa o hash feio da URL
+      history.replaceState(null,'',location.pathname)
+      await carregarNegocio()
+      return
+    }
+  }
+
+  const{data:{session}}=await sb.auth.getSession()
+  if(session){S.user=session.user;await carregarNegocio()}
+  else showScreen('screen-login')
+
+  sb.auth.onAuthStateChange(async(_,sess)=>{
+    if(sess){
+      S.user=sess.user
+      if(!S.negocio) await carregarNegocio()
+      else await atualizarSidebar()
+    }
+  })
+}
+
+async function carregarNegocio(){
+  setLoading(true)
+  const{data}=await sb.from('negocios').select('*').eq('dono_id',S.user.id).eq('ativo',true).order('criado_em').limit(1).maybeSingle()
+  if(data){S.negocio=data;await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()]);await atualizarSidebar();showScreen('screen-app');navTo('dashboard');await carregarDashboard()}
+  else{showScreen('screen-onboarding');initOnb()}
+  setLoading(false)
+}
+
+async function loginGoogle(){const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://a-591870.netlify.app'}});if(error)showToast('❌ Erro Google')}
+async function loginEmail(){
+  const e=document.getElementById('login-email').value,s=document.getElementById('login-senha').value
+  if(!e||!s)return showToast('Preencha e-mail e senha')
+  setLoading(true);const{data,error}=await sb.auth.signInWithPassword({email:e,password:s});setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  S.user=data.user;await carregarNegocio();await atualizarSidebar()
+}
+async function cadastrarEmail(){
+  const n=document.getElementById('cad-nome').value,e=document.getElementById('cad-email').value,s=document.getElementById('cad-senha').value
+  if(!n||!e||!s)return showToast('Preencha todos os campos')
+  setLoading(true);const{data,error}=await sb.auth.signUp({email:e,password:s,options:{data:{full_name:n}}});setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  S.user=data.user;showToast('✅ Conta criada!');await carregarNegocio();await atualizarSidebar()
+}
+function toggleAnonCfg(){
+  const t=document.getElementById('cfg-toggle-anon')
+  t.classList.toggle('on')
+  const f=document.getElementById('cfg-anon-field')
+  if(f)f.style.display=t.classList.contains('on')?'block':'none'
+}
+function toggleMinAvals(){
+  const t=document.getElementById('cfg-toggle-min-avals')
+  t.classList.toggle('on')
+  const f=document.getElementById('cfg-min-avals-field')
+  if(f)f.style.display=t.classList.contains('on')?'block':'none'
+}
+async function fazerLogout(){await sb.auth.signOut();S={user:null,negocio:null,bonusConfig:null,itens:[],templates:{},ramo:'lava_jato',onbItens:[],step:1,codigoAtual:null};showScreen('screen-login')}
+function switchLoginTab(t){
+  document.querySelectorAll('.login-tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='entrar')||(i===1&&t==='cadastro')))
+  document.getElementById('login-view').classList.toggle('hidden',t==='cadastro')
+  document.getElementById('cadastro-view').classList.toggle('hidden',t==='entrar')
+}
+
+// ── ONBOARDING ──
+const SUGS={lava_jato:[{e:'🚿',n:'Lavagem Externa'},{e:'🪣',n:'Lavagem Interna'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Prazo / Agilidade'},{e:'🧴',n:'Polimento / Cera'},{e:'💰',n:'Preço'}],restaurante:[{e:'🍽️',n:'Qualidade do Prato'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Tempo de Espera'},{e:'🏠',n:'Ambiente'},{e:'💰',n:'Preço'}],salao:[{e:'✂️',n:'Corte / Serviço'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Pontualidade'},{e:'🧴',n:'Produtos'},{e:'💰',n:'Preço'}],loja:[{e:'🛍️',n:'Produto'},{e:'🙋',n:'Atendimento'},{e:'🏠',n:'Organização'},{e:'💰',n:'Preço'}],saude:[{e:'🏥',n:'Atendimento Médico'},{e:'🙋',n:'Recepção'},{e:'⏱️',n:'Pontualidade'},{e:'🏠',n:'Estrutura'},{e:'💰',n:'Preço'}],outro:[{e:'⭐',n:'Qualidade'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Prazo'},{e:'💰',n:'Preço'}]}
+
+function initOnb(){S.step=1;S.onbItens=[];S.ramo='lava_jato';irStep(1)}
+function selRamo(el,r){document.querySelectorAll('.ramo-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.ramo=r}
+function atualizarSugs(){
+  const el=document.getElementById('sugestoes')
+  const lista=SUGS[S.ramo]||SUGS.outro
+  el.innerHTML=lista.map(s=>{
+    const key=s.e+' '+s.n
+    const used=S.onbItens.some(i=>i.n===s.n)
+    return`<span class="sug-chip ${used?'used':''}" onclick="addSug(this,'${s.n}','${s.e}')">${s.e} ${s.n}</span>`
+  }).join('')
+}
+function addSug(chip,nome,emoji){if(S.onbItens.some(i=>i.n===nome))return;S.onbItens.push({n:nome,e:emoji});chip.classList.add('used');renderOnbItens()}
+function addOnbItem(){const inp=document.getElementById('new-item-input'),v=inp.value.trim();if(!v)return;const em=v.match(/^\p{Emoji}/u)?.[0]||'⭐',nm=em!='⭐'?v.replace(em,'').trim():v;S.onbItens.push({n:nm,e:em});inp.value='';renderOnbItens();atualizarSugs()}
+function delOnbItem(i){S.onbItens.splice(i,1);renderOnbItens();atualizarSugs()}
+function renderOnbItens(){
+  document.getElementById('itens-count').textContent='('+S.onbItens.length+')'
+  document.getElementById('onb-itens-list').innerHTML=S.onbItens.map((it,i)=>`<div class="ei-row"><span class="ei-name">${it.e||'⭐'} ${it.n||it}</span><button class="ei-del" onclick="delOnbItem(${i})">✕</button></div>`).join('')
+}
+function toggleAnonOnb(){const t=document.getElementById('toggle-anon-onb');t.classList.toggle('on');document.getElementById('anon-val-onb').style.display=t.classList.contains('on')?'block':'none';}
+function irStep(n){
+  S.step=n
+  for(let i=1;i<=5;i++)document.getElementById('onb-step-'+i).classList.toggle('hidden',i!==n)
+  document.querySelectorAll('.ps').forEach((ps,i)=>{ps.classList.remove('active','done');if(i+1===n)ps.classList.add('active');if(i+1<n){ps.classList.add('done');ps.querySelector('.ps-dot').textContent='✓'}else ps.querySelector('.ps-dot').textContent=i+1})
+  document.getElementById('onb-btn-back').classList.toggle('hidden',n<=1)
+  const nx=document.getElementById('onb-btn-next')
+  if(n===5)nx.classList.add('hidden');else{nx.classList.remove('hidden');nx.textContent=n===4?'Finalizar ✓':'Próximo →'}
+  if(n===3)atualizarSugs()
+  if(n===5)montarResumo()
+}
+async function onbNext(){
+  if(S.step===1){const nome=document.getElementById('onb-nome').value.trim(),slug=document.getElementById('onb-slug').value.trim();if(!nome||!slug)return showToast('Preencha nome e link')}
+  if(S.step===4){await salvarOnb();return}
+  irStep(S.step+1)
+}
+function onbPrev(){if(S.step>1)irStep(S.step-1)}
+async function pularOnboarding(){await salvarOnb(true)}
+async function salvarOnb(pular=false){
+  setLoading(true)
+  try{
+    // Se já tem negócio, vai direto pro dashboard
+    if(S.negocio){showScreen('screen-app');navTo('dashboard');await carregarDashboard();setLoading(false);return}
+    const nome=(document.getElementById('onb-nome').value.trim()||'Meu Negócio')
+    const slug=(document.getElementById('onb-slug').value.trim().toLowerCase().replace(/\s+/g,'-')||'meu-negocio')
+    // Verifica se slug já existe e adiciona sufixo se necessário
+    let slugFinal = slug
+    const{data:existeSlug}=await sb.from('negocios').select('id').eq('slug',slug).maybeSingle()
+    if(existeSlug) slugFinal = slug+'-'+Date.now().toString().slice(-4)
+
+    const{data:neg,error:e1}=await sb.from('negocios').insert({dono_id:S.user.id,nome,slug:slugFinal,ramo:S.ramo,whatsapp:document.getElementById('onb-whatsapp').value||'',cidade:document.getElementById('onb-cidade')?.value||''}).select().single()
+    if(e1)throw e1
+    S.negocio=neg
+    await sb.rpc('criar_dados_iniciais',{p_negocio_id:neg.id})
+    if(!pular&&S.onbItens.length)await sb.from('itens_avaliacao').insert(S.onbItens.map((it,i)=>({negocio_id:neg.id,nome:it.n||it,emoji:it.e||null,ordem:i})))
+    if(!pular)await sb.from('bonus_config').upsert({negocio_id:neg.id,tipo:document.getElementById('bonus-tipo').value,valor_anonimo:+(document.getElementById('bonus-anon').value)||5,valor_identificado:+(document.getElementById('bonus-id').value)||15,bonus_anonimo_ativo:document.getElementById('toggle-anon-onb').classList.contains('on'),prefixo_codigo:document.getElementById('bonus-prefixo').value||'AVA',validade_dias:+(document.getElementById('bonus-validade').value)||30},{onConflict:'negocio_id'})
+    await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+    atualizarSidebar()
+    if(!pular){
+      await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+      atualizarSidebar()
+      irStep(5)
+      setLoading(false)
+      return
+    }
+    showScreen('screen-app');navTo('dashboard');await carregarDashboard()
+  }catch(err){showToast('❌ '+err.message)}
+  setLoading(false)
+}
+function montarResumo(){
+  const neg=S.negocio
+  if(!neg)return
+  const nome=neg.nome||document.getElementById('onb-nome')?.value||'—'
+  const slug=neg.slug||document.getElementById('onb-slug')?.value||'—'
+  const nItens=S.itens.length||S.onbItens.length||0
+  const bc=S.bonusConfig
+  const vAnon=bc?.valor_anonimo||document.getElementById('bonus-anon')?.value||5
+  const vId=bc?.valor_identificado||document.getElementById('bonus-id')?.value||15
+  document.getElementById('onb-resumo').innerHTML=`
+    <div class="summary-row"><div class="sum-icon">🏪</div><div><div class="sum-label">Negócio</div><div class="sum-val">${nome}</div></div></div>
+    <div class="summary-row"><div class="sum-icon">🔗</div><div><div class="sum-label">Link</div><div class="sum-val" style="color:var(--brand)">avaliai.app/${slug}</div></div></div>
+    <div class="summary-row"><div class="sum-icon">⭐</div><div><div class="sum-label">Itens de avaliação</div><div class="sum-val">${nItens} itens configurados</div></div></div>
+    <div class="summary-row" style="border:none"><div class="sum-icon">🎁</div><div><div class="sum-label">Bônus</div><div class="sum-val">${vAnon}% anônimo · ${vId}% identificado</div></div></div>`
+  document.getElementById('copiar-link-btn').onclick=()=>{
+    navigator.clipboard?.writeText(location.origin+'?slug='+slug)
+    showToast('✅ Link copiado!')
+  }
+}
+async function irDashboard(){
+  setLoading(true)
+  await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+  atualizarSidebar()
+  showScreen('screen-app')
+  navTo('dashboard')
+  await carregarDashboard()
+  setLoading(false)
+}
+
+// ── SIDEBAR / NAV ──
+async function atualizarSidebar(){
+  if(!S.negocio)return
+  document.getElementById('sidebar-biz-name').textContent=S.negocio.nome
+  document.getElementById('sidebar-biz-slug').textContent='avaliai.app/'+S.negocio.slug
+  document.getElementById('dash-nome').textContent=S.negocio.nome
+
+  // Garante user atualizado
+  // Sempre busca user atualizado do Supabase
+  try{const{data:{user}}=await sb.auth.getUser();if(user)S.user=user}catch(e){}
+  if(!S.user)return
+  const email=S.user?.email||'—'
+  const meta=S.user?.user_metadata
+  const nome=meta?.full_name||meta?.name||email.split('@')[0]
+
+  // Bem-vindo dashboard
+  const barName=document.getElementById('user-bar-name')
+  const barEmail=document.getElementById('user-bar-email')
+  if(barName)barName.textContent=nome
+  if(barEmail)barEmail.textContent=email
+
+  // Config
+  const cfgEmail=document.getElementById('cfg-user-email')
+  if(cfgEmail)cfgEmail.textContent=email
+
+  // Sidebar desktop
+  const sideEmail=document.getElementById('sidebar-user-email')
+  if(sideEmail)sideEmail.textContent=email
+}
+function navTo(page){
+  document.querySelectorAll('.nav-item,.bn-item').forEach(el=>el.classList.toggle('active',el.getAttribute('onclick')?.includes("'"+page+"'")))
+  document.querySelectorAll('[id^="page-"]').forEach(el=>el.classList.add('hidden'))
+  document.getElementById('page-'+page)?.classList.remove('hidden')
+  if(page==='dashboard')carregarDashboard()
+  if(page==='clientes')carregarClientes()
+  if(page==='lista')carregarLista()
+  if(page==='config')carregarConfig()
+}
+
+// ── DASHBOARD ──
+async function carregarItens(){if(!S.negocio)return;const{data}=await sb.from('itens_avaliacao').select('*').eq('negocio_id',S.negocio.id).eq('ativo',true).order('ordem');S.itens=data||[]}
+async function carregarBonusConfig(){if(!S.negocio)return;const{data}=await sb.from('bonus_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle();S.bonusConfig=data}
+async function carregarTemplates(){if(!S.negocio)return;const{data}=await sb.from('templates_mensagem').select('*').eq('negocio_id',S.negocio.id);S.templates={};data?.forEach(t=>S.templates[t.tipo]=t.conteudo)}
+
+async function carregarDashboard(){
+  if(!S.negocio)return
+  const id=S.negocio.id
+  const[{data:res},{data:mi},{data:feeds}]=await Promise.all([
+    sb.from('vw_dashboard').select('*').eq('negocio_id',id).maybeSingle(),
+    sb.from('vw_media_itens').select('*').eq('negocio_id',id),
+    sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(10)
+  ])
+  if(res){
+    // Calcula nota média direto
+  const{data:notaData}=await sb.from('avaliacoes').select('nota_geral').eq('negocio_id',id).not('nota_geral','is',null)
+  if(notaData?.length){
+    const media=notaData.reduce((s,a)=>s+(a.nota_geral||0),0)/notaData.length
+    document.getElementById('kpi-nota').textContent=media.toFixed(1)
+  } else {
+    document.getElementById('kpi-nota').textContent=res?.nota_media?parseFloat(res.nota_media).toFixed(1):'—'
+  }
+    document.getElementById('kpi-avals').textContent=res.total_avaliacoes??0
+    document.getElementById('kpi-clientes').textContent=res.total_clientes??0
+    document.getElementById('kpi-bonus-g').textContent=res.bonus_ativos??0
+    document.getElementById('kpi-bonus-r').textContent=res.bonus_resgatados??0
+    document.getElementById('kpi-id').textContent=res.avaliacoes_identificadas??0
+  }
+  if(mi?.length){
+    document.getElementById('dash-media-card').style.display='block'
+    document.getElementById('dash-media-itens').innerHTML=mi.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span>${m.emoji||'⭐'} ${m.item_nome}</span><b style="color:${(m.nota_media||0)<3?'var(--rd)':'inherit'}">${m.nota_media??'—'}</b></div>`).join('')
+  }
+  const link=location.origin+'?slug='+S.negocio.slug
+  document.getElementById('dash-link-text').textContent=location.host+'?slug='+S.negocio.slug
+  try{
+    const canvas=document.getElementById('qr-canvas')
+    QRCode.toCanvas(canvas,link,{width:64,margin:1,color:{dark:'#6C3BF5',light:'#ffffff'}})
+  }catch(e){console.log('QR error:',e)}
+  const fEl=document.getElementById('dash-feedbacks')
+  if(!feeds?.length){fEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma avaliação ainda</div>';return}
+  fEl.innerHTML=feeds.map(av=>{
+    const n=Math.round(av.nota_geral||0),bom=n>=4
+    const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
+    const itens=(av.avaliacao_itens||[]).map(ai=>`<div class="fi-item-r"><span class="fi-item-n">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span></div>`).join('')
+    return`<div class="fi"><div class="fi-top"><div>${'⭐'.repeat(n)} <span class="badge ${bom?'bg':'br'}">${bom?'Positivo':'Atenção'}</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:11px;font-weight:600;margin-bottom:4px">${nome}</div>${itens?`<div class="fi-items-list">${itens}</div>`:''}${av.comentario?`<div class="fi-comment">${av.comentario}</div>`:''}</div>`
+  }).join('')
+}
+function copiarLink(){navigator.clipboard?.writeText(location.origin+'?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
+function abrirAvaliar(){window.open(location.origin+'?slug='+S.negocio?.slug,'_blank')}
+
+// ── CLIENTES ──
+async function carregarClientes(busca=''){
+  if(!S.negocio)return
+  let q=sb.from('clientes').select('*').eq('negocio_id',S.negocio.id).eq('ativo',true).order('nome')
+  if(busca)q=q.or(`nome.ilike.%${busca}%,whatsapp.ilike.%${busca}%`)
+  const{data}=await q
+  const el=document.getElementById('lista-clientes')
+  if(!data?.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum cliente</div>';return}
+  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${c.nome}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${c.nome}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost">✏️</button></div></div>`).join('')
+}
+function buscarClientes(v){carregarClientes(v)}
+async function salvarCliente(){
+  const nome=document.getElementById('nc-nome').value.trim(),wpp=document.getElementById('nc-whatsapp').value.trim()
+  if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
+  setLoading(true)
+  const{error}=await sb.from('clientes').insert({negocio_id:S.negocio.id,nome,whatsapp:wpp,email:document.getElementById('nc-email').value||null,cpf:document.getElementById('nc-cpf').value||null,logradouro:document.getElementById('nc-rua').value||null,numero:document.getElementById('nc-num').value||null,bairro:document.getElementById('nc-bairro').value||null,cep:document.getElementById('nc-cep').value||null,cidade:document.getElementById('nc-cidade').value||null,uf:document.getElementById('nc-uf').value||null})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  closeModalDirect('m-novo-cliente');showToast('✅ Cliente salvo!');carregarClientes()
+  ;['nc-nome','nc-whatsapp','nc-email','nc-cpf','nc-rua','nc-num','nc-bairro','nc-cep','nc-cidade'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+}
+async function importarContatos(inp){
+  const file=inp.files[0];if(!file)return
+  setLoading(true)
+  const text=await file.text()
+  let cs=[]
+  if(file.name.endsWith('.vcf')){
+    text.split('BEGIN:VCARD').forEach(b=>{const fn=b.match(/FN:(.+)/i),tel=b.match(/TEL[^:]*:([0-9\s\-\+\(\)]+)/i);if(fn&&tel)cs.push({nome:fn[1].trim(),whatsapp:tel[1].replace(/\D/g,'').slice(-11)})})
+  }else{text.split('\n').slice(1).forEach(l=>{const[n,t]=l.split(',');if(n&&t)cs.push({nome:n.trim(),whatsapp:t.trim().replace(/\D/g,'').slice(-11)})})}
+  if(!cs.length){setLoading(false);return showToast('Nenhum contato encontrado')}
+  const{error}=await sb.from('clientes').upsert(cs.map(c=>({negocio_id:S.negocio.id,nome:c.nome,whatsapp:c.whatsapp,origem:'importacao'})),{onConflict:'negocio_id,whatsapp',ignoreDuplicates:true})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  closeModalDirect('m-import');showToast('✅ '+cs.length+' contatos importados!');carregarClientes()
+}
+
+// ── LISTA ──
+async function carregarLista(){
+  if(!S.negocio)return
+  const{data}=await sb.from('lista_disparo').select('*,clientes(nome,whatsapp),links_avaliacao(token)').eq('negocio_id',S.negocio.id).eq('status','pendente').order('adicionado_em')
+  const lista=data||[]
+  document.getElementById('lista-count').textContent=lista.length+' na fila'
+  document.getElementById('lista-stat-fila').textContent=lista.length
+  const el=document.getElementById('lista-disparo-items')
+  if(!lista.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Lista vazia</div>';return}
+  el.innerHTML=lista.map(it=>{
+    const urgente=new Date(it.adicionado_em)<new Date(Date.now()-7*24*60*60*1000)
+    return`<div class="list-item"><div class="li-av">${ini(it.clientes?.nome||'?')}</div><div class="li-info"><div class="li-name">${it.clientes?.nome||'—'}</div><div class="li-phone">${it.clientes?.whatsapp||'—'}</div><div class="li-time">⏱ Na lista há <span>${tempoLista(it.adicionado_em)}</span></div><span class="badge ${urgente?'br':'by'}" style="margin-top:3px">${urgente?'⚠️ Há muito tempo':'⏳ Aguardando'}</span></div><div class="li-acts"><button class="btn btn-green" style="font-size:11px" onclick="enviarLista('${it.id}','${it.clientes?.nome}','${it.clientes?.whatsapp}','${it.link_id||''}')">📲</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button></div></div>`
+  }).join('')
+}
+async function buscarParaLista(busca){
+  if(!busca||busca.length<2){document.getElementById('lista-busca-results').innerHTML='';return}
+  const{data}=await sb.from('clientes').select('id,nome,whatsapp').eq('negocio_id',S.negocio.id).or(`nome.ilike.%${busca}%,whatsapp.ilike.%${busca}%`).limit(5)
+  const el=document.getElementById('lista-busca-results')
+  if(!data?.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:5px 0">Nenhum cliente encontrado</div>';return}
+  el.innerHTML=data.map(c=>`<div class="search-result-item" style="padding:12px 14px;margin-bottom:7px;border:1px solid var(--border)"><div class="li-av" style="width:38px;height:38px;font-size:13px">${ini(c.nome)}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${c.nome}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${c.whatsapp}</div></div><button class="btn btn-primary" style="padding:10px 16px;font-size:13px" onclick="adicionarLista('${c.id}')">+ Adicionar</button></div>`).join('')
+}
+async function adicionarLista(cId){
+  setLoading(true)
+  const{data:link}=await sb.from('links_avaliacao').insert({negocio_id:S.negocio.id,cliente_id:cId}).select().single()
+  const{error}=await sb.from('lista_disparo').upsert({negocio_id:S.negocio.id,cliente_id:cId,link_id:link?.id||null,status:'pendente'},{onConflict:'negocio_id,cliente_id,status',ignoreDuplicates:true})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  document.getElementById('busca-lista').value='';document.getElementById('lista-busca-results').innerHTML=''
+  showToast('✅ Adicionado!');carregarLista()
+}
+async function removerLista(id){await sb.from('lista_disparo').delete().eq('id',id);showToast('Removido');carregarLista()}
+async function enviarLista(itemId,nome,wpp,linkId){
+  await abrirEnviar(null,nome,wpp,linkId)
+  await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',itemId)
+}
+async function dispararTodos(){
+  const{data}=await sb.from('lista_disparo').select('*,clientes(nome,whatsapp),links_avaliacao(token)').eq('negocio_id',S.negocio.id).eq('status','pendente')
+  if(!data?.length)return showToast('Lista vazia')
+  S._filaDisparo=[...data]
+  S._filaIdx=0
+  dispararProximo()
+}
+async function dispararProximo(){
+  if(!S._filaDisparo||S._filaIdx>=S._filaDisparo.length){
+    showToast('✅ Todos os disparos concluídos!',3500)
+    carregarLista()
+    return
+  }
+  const c=S._filaDisparo[S._filaIdx]
+  const total=S._filaDisparo.length
+  const atual=S._filaIdx+1
+  // Adiciona info de progresso no modal
+  S._itemIdAtual=c.id
+  await abrirEnviar(c.cliente_id,c.clientes?.nome,c.clientes?.whatsapp,c.link_id,atual,total)
+}
+async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
+  let token=null
+  if(linkId){const{data}=await sb.from('links_avaliacao').select('token').eq('id',linkId).maybeSingle();token=data?.token}
+  const link=token?location.origin+'?slug='+S.negocio.slug+'&a='+token:location.origin+'?slug='+S.negocio.slug
+  const bc=S.bonusConfig,tpl=S.templates['pedido_avaliacao']||'Olá {nome}! Avalie o {empresa}: {link}'
+  const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bc?bc.valor_identificado+'%':'bônus',bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
+  document.getElementById('m-enviar-sub').textContent=(atual&&total?`(${atual}/${total}) `:'')+'Para '+nome+' · '+wpp
+  // Botão próximo na fila
+  const btnNext=document.getElementById('m-enviar-next')
+  if(btnNext){
+    if(total>1&&atual<total){
+      btnNext.style.display='flex'
+      btnNext.textContent=`Próximo → (${atual+1}/${total})`
+      btnNext.onclick=async()=>{
+        await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
+        S._filaIdx++
+        closeModalDirect('m-enviar')
+        setTimeout(dispararProximo,500)
+      }
+    }else if(btnNext){btnNext.style.display='none'}
+  }
+  document.getElementById('m-enviar-preview').textContent=msg
+  document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
+    window.open(linkWpp(wpp,msg),'_blank')
+    if(S._itemIdAtual){
+      await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
+      S._itemIdAtual=null
+      showToast('✅ Marcado como enviado!')
+    }
+    closeModalDirect('m-enviar')
+    setTimeout(()=>carregarLista(),500)
+  }
+  openModal('m-enviar')
+}
+function confirmarAgendamento(){const d=document.getElementById('ag-data').value;if(!d)return showToast('Selecione data');closeModalDirect('m-agendar');showToast('✅ Agendado para '+d+' às '+document.getElementById('ag-hora').value,3500)}
+
+// ── RESGATAR ──
+async function verificarCodigo(){
+  const codigo=document.getElementById('codigo-input').value.trim().toUpperCase()
+  if(!codigo)return showToast('Digite um código')
+  ;['codigo-valido','codigo-usado','codigo-invalido'].forEach(id=>document.getElementById(id).classList.add('hidden'))
+  setLoading(true)
+  const{data,error}=await sb.from('codigos_bonus').select('*,clientes(nome),avaliacoes(nota_geral,criado_em)').eq('codigo',codigo).maybeSingle()
+  setLoading(false)
+  if(!data||error){document.getElementById('codigo-invalido').classList.remove('hidden');return}
+  S.codigoAtual=data
+  if(data.status==='resgatado'){
+    document.getElementById('codigo-usado-detalhe').innerHTML=`<div class="vr"><span>Usado em</span><span>${fmtDate(data.resgatado_em)}</span></div><div class="vr"><span>Status</span><span style="color:var(--rd)">⛔ Resgatado</span></div>`
+    document.getElementById('codigo-usado').classList.remove('hidden');return
+  }
+  if(data.status==='expirado'||new Date(data.expira_em)<new Date()){document.getElementById('codigo-invalido').classList.remove('hidden');showToast('⚠️ Código expirado');return}
+  document.getElementById('codigo-detalhes').innerHTML=`<div class="vr"><span>Cliente</span><span>${data.clientes?.nome||'Anônimo'}</span></div><div class="vr"><span>Bônus</span><span>🎁 ${data.descricao||data.valor+'%'}</span></div><div class="vr"><span>Avaliação</span><span>${'⭐'.repeat(Math.round(data.avaliacoes?.nota_geral||0))} · ${fmtDate(data.avaliacoes?.criado_em)}</span></div><div class="vr"><span>Validade</span><span>${new Date(data.expira_em).toLocaleDateString('pt-BR')}</span></div><div class="vr"><span>Status</span><span style="color:var(--gd)">✓ Disponível</span></div>`
+  document.getElementById('codigo-valido').classList.remove('hidden')
+}
+async function confirmarResgate(){
+  if(!S.codigoAtual)return
+  setLoading(true)
+  const{error}=await sb.from('codigos_bonus').update({status:'resgatado',resgatado_em:new Date().toISOString()}).eq('id',S.codigoAtual.id)
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  const btn=document.getElementById('btn-confirmar-resgate');btn.textContent='✓ Resgatado!';btn.style.background='var(--gd)';btn.disabled=true;showToast('✅ Bônus resgatado!')
+}
+
+// ── CONFIG ──
+async function carregarConfig(){
+  if(!S.negocio)return
+  setLoading(true)
+  // Força busca direta do banco
+  const{data:itensDB}=await sb.from('itens_avaliacao').select('*').eq('negocio_id',S.negocio.id).eq('ativo',true).order('ordem')
+  S.itens=itensDB||[]
+  await Promise.all([carregarBonusConfig(),carregarTemplates()])
+  setLoading(false)
+  renderCfgItens()
+  const bc=S.bonusConfig
+  if(bc){
+    document.getElementById('cfg-bonus-tipo').value=bc.tipo||'percentual'
+    document.getElementById('cfg-bonus-anon').value=bc.valor_anonimo||5
+    document.getElementById('cfg-bonus-id').value=bc.valor_identificado||15
+    document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo||'AVA'
+    document.getElementById('cfg-bonus-validade').value=bc.validade_dias||30
+    if(!bc.bonus_anonimo_ativo){
+      document.getElementById('cfg-toggle-anon').classList.remove('on')
+      const f=document.getElementById('cfg-anon-field')
+      if(f)f.style.display='none'
+    }
+    if(bc.min_avaliacoes>1){
+      document.getElementById('cfg-toggle-min-avals').classList.add('on')
+      document.getElementById('cfg-min-avals-field').style.display='block'
+      document.getElementById('cfg-min-avals').value=bc.min_avaliacoes
+    }
+  }
+  document.getElementById('tpl-pedido').value=S.templates['pedido_avaliacao']||''
+  document.getElementById('tpl-codigo').value=S.templates['envio_codigo']||''
+  document.getElementById('cfg-nome-negocio').value=S.negocio.nome
+  document.getElementById('cfg-ramo').value=S.negocio.ramo
+  document.getElementById('cfg-slug').value=S.negocio.slug
+}
+function renderCfgItens(){
+  const el=document.getElementById('cfg-itens-list')
+  if(!S.itens.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;text-align:center">Nenhum item. Adicione abaixo.</div>'
+    return
+  }
+  el.innerHTML=S.itens.map((it,i)=>`
+    <div class="eic-cfg-row">
+      <span style="font-size:20px;flex-shrink:0">${it.emoji||'⭐'}</span>
+      <span class="eic-cfg-name">${it.nome}</span>
+      <button class="ei-del" onclick="delCfgItem(${i})">✕</button>
+    </div>`).join('')
+}
+function delCfgItem(i){S.itens.splice(i,1);renderCfgItens()}
+function addCfgItem(){const inp=document.getElementById('cfg-new-item'),v=inp.value.trim();if(!v)return;const emoji=v.match(/^\p{Emoji}/u)?.[0]||null,nome=emoji?v.replace(emoji,'').trim():v;S.itens.push({negocio_id:S.negocio.id,nome,emoji,ordem:S.itens.length});inp.value='';renderCfgItens()}
+async function salvarItens(){setLoading(true);await sb.from('itens_avaliacao').delete().eq('negocio_id',S.negocio.id);if(S.itens.length)await sb.from('itens_avaliacao').insert(S.itens.map((it,i)=>({negocio_id:S.negocio.id,nome:it.nome,emoji:it.emoji,ordem:i})));await carregarItens();setLoading(false);showToast('✅ Itens salvos!')}
+async function salvarBonusConfig(){
+  setLoading(true)
+  const minAvals=document.getElementById('cfg-toggle-min-avals')?.classList.contains('on')
+    ? +(document.getElementById('cfg-min-avals')?.value||3)
+    : 1
+  const{error}=await sb.from('bonus_config').upsert({
+    negocio_id:S.negocio.id,
+    tipo:document.getElementById('cfg-bonus-tipo').value,
+    valor_anonimo:+document.getElementById('cfg-bonus-anon').value,
+    valor_identificado:+document.getElementById('cfg-bonus-id').value,
+    bonus_anonimo_ativo:document.getElementById('cfg-toggle-anon').classList.contains('on'),
+    prefixo_codigo:document.getElementById('cfg-bonus-prefixo').value,
+    validade_dias:+document.getElementById('cfg-bonus-validade').value,
+    min_avaliacoes:minAvals
+  },{onConflict:'negocio_id'})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  await carregarBonusConfig()
+  showToast('✅ Bônus salvo!')
+}
+async function salvarTemplate(tipo,id){const c=document.getElementById(id).value.trim();if(!c)return showToast('Digite o conteúdo');setLoading(true);const{error}=await sb.from('templates_mensagem').upsert({negocio_id:S.negocio.id,tipo,conteudo:c,titulo:tipo},{onConflict:'negocio_id,tipo'});setLoading(false);if(error)return showToast('❌ '+error.message);await carregarTemplates();showToast('✅ Template salvo!')}
+async function salvarNegocio(){const nome=document.getElementById('cfg-nome-negocio').value.trim(),slug=document.getElementById('cfg-slug').value.trim();if(!nome||!slug)return showToast('Preencha nome e slug');setLoading(true);const{error}=await sb.from('negocios').update({nome,slug,ramo:document.getElementById('cfg-ramo').value}).eq('id',S.negocio.id);setLoading(false);if(error)return showToast('❌ '+error.message);S.negocio.nome=nome;S.negocio.slug=slug;await atualizarSidebar();showToast('✅ Negócio atualizado!')}
+function insVar(id,v){const ta=document.getElementById(id),s=ta.selectionStart,e=ta.selectionEnd;ta.value=ta.value.slice(0,s)+v+ta.value.slice(e);ta.focus();ta.selectionStart=ta.selectionEnd=s+v.length}
+function prevTpl(id){const bc=S.bonusConfig,m={'{nome}':'João Silva','{empresa}':S.negocio?.nome||'Negócio','{link}':location.origin+'?slug='+(S.negocio?.slug||'link'),'{bonus_id}':(bc?.valor_identificado||15)+'%','{bonus_anon}':(bc?.valor_anonimo||5)+'%','{codigo}':'AVA-X7K2-M9','{validade}':'22/07/2026'};let msg=document.getElementById(id).value;Object.entries(m).forEach(([k,v])=>msg=msg.replaceAll(k,v));document.getElementById('preview-content').textContent=msg;openModal('m-preview')}
+
+// ── AVALIAR ──
+async function initAvaliar(slug,token){
+  showScreen('screen-avaliar');setLoading(true)
+  const{data:neg}=await sb.from('negocios').select('*').eq('slug',slug).maybeSingle()
+  if(!neg){setLoading(false);document.getElementById('avaliar-form').innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted)">❌ Negócio não encontrado</div>';return}
+  avS.negocio=neg;avS.token=token
+  const[{data:itens},{data:bc}]=await Promise.all([sb.from('itens_avaliacao').select('*').eq('negocio_id',neg.id).eq('ativo',true).order('ordem'),sb.from('bonus_config').select('*').eq('negocio_id',neg.id).maybeSingle()])
+  avS.itens=itens||[];avS.bc=bc
+  // Verifica se link já foi usado
+  if(token){
+    const{data:linkData}=await sb.from('links_avaliacao').select('usado').eq('token',token).maybeSingle()
+    if(linkData?.usado){
+      setLoading(false)
+      document.getElementById('avaliar-form').innerHTML=`<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Link já utilizado</div><div style="font-size:14px;color:var(--muted)">Este link de avaliação já foi usado.<br/>Peça um novo link ao estabelecimento.</div></div>`
+      return
+    }
+  }
+  document.getElementById('av-nome').textContent=neg.nome
+  document.getElementById('av-tipo').textContent=neg.cidade||''
+  if(bc){
+    document.getElementById('av-val-id').textContent=bc.valor_identificado+'% off'
+    if(bc.bonus_anonimo_ativo){
+      document.getElementById('av-val-anon').textContent=bc.valor_anonimo+'% off'
+      document.getElementById('av-bonus-sub').textContent='Identifique-se para '+bc.valor_identificado+'% vs '+bc.valor_anonimo+'%'
+    } else {
+      // Esconde coluna anônima
+      const anonCol=document.getElementById('av-val-anon')?.closest('.bc')
+      if(anonCol)anonCol.style.display='none'
+      document.getElementById('av-bonus-sub').textContent='Avalie e ganhe '+bc.valor_identificado+'% de desconto!'
+      // Esconde link de pular identificação
+      const skip=document.getElementById('id-card')?.querySelector('.id-skip')
+      if(skip)skip.style.display='none'
+    }
+  }
+  document.getElementById('av-itens-list').innerHTML=avS.itens.map((item,idx)=>`
+    <div class="eval-item-card">
+      <div class="eic-title">${item.emoji||'⭐'} ${item.nome}</div>
+      <div class="mini-stars" data-item="${idx}">${[1,2,3,4,5].map(n=>`<button class="mstar" onclick="setMStar(${idx},${n})" data-val="${n}">⭐</button>`).join('')}</div>
+      <textarea class="eic-comment" id="av-c-${idx}" placeholder="Comentário sobre ${item.nome} (opcional)…"></textarea>
+    </div>`).join('')
+  setLoading(false)
+}
+function setEmoji(idx,val){document.querySelector(`.emoji-row[data-item="${idx}"]`).querySelectorAll('.emoji-btn').forEach(b=>b.classList.toggle('lit',+b.dataset.val===val))}
+function setMStar(idx,val){document.querySelector(`.mini-stars[data-item="${idx}"]`).querySelectorAll('.mstar').forEach(b=>b.classList.toggle('lit',+b.dataset.val<=val))}
+function skipId(){avS.identificado=false;const c=document.getElementById('id-card');c.style.opacity='.4';c.style.pointerEvents='none';document.querySelector('.btn-submit-eval').textContent='Enviar (bônus básico)'}
+
+async function enviarAvaliacao(){
+  const itensDados=avS.itens.map((item,idx)=>{
+    const sr=document.querySelector(`.mini-stars[data-item="${idx}"]`)
+    const nota=[...sr.querySelectorAll('.mstar.lit')].length||3
+    return{item_id:item.id,nota,humor:null,comentario:document.getElementById('av-c-'+idx)?.value||null}
+  })
+  const nomeId=document.getElementById('av-id-nome').value.trim(),telId=document.getElementById('av-id-tel').value.trim()
+  const temId=avS.identificado&&nomeId&&telId
+  setLoading(true)
+  try{
+    let cId=null
+    if(temId){const{data:cli}=await sb.from('clientes').upsert({negocio_id:avS.negocio.id,nome:nomeId,whatsapp:telId,origem:'avaliacao'},{onConflict:'negocio_id,whatsapp'}).select().single();cId=cli?.id}
+    let linkId=null
+    if(avS.token){const{data}=await sb.from('links_avaliacao').select('id').eq('token',avS.token).maybeSingle();linkId=data?.id}
+    const{data:av}=await sb.from('avaliacoes').insert({negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:nomeId||null,avaliador_whatsapp:telId||null}).select().single()
+    await sb.from('avaliacao_itens').insert(itensDados.filter(i=>i.nota>0).map(i=>({...i,avaliacao_id:av.id})))
+    let codigoGerado=null
+    const bc=avS.bc
+    let progresso=null
+
+    if(bc&&(temId||bc.bonus_anonimo_ativo)){
+      const minAvals=bc.min_avaliacoes||1
+
+      // Conta avaliações anteriores deste cliente/negócio
+      let totalAvals=1
+      if(minAvals>1&&cId){
+        const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',avS.negocio.id).eq('cliente_id',cId)
+        totalAvals=count||1
+      }
+
+      if(totalAvals>=minAvals){
+        // Atingiu o mínimo — gera código
+        const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
+        const valor=temId?bc.valor_identificado:bc.valor_anonimo
+        const expira=new Date();expira.setDate(expira.getDate()+bc.validade_dias)
+        const{data:cb}=await sb.from('codigos_bonus').insert({
+          negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
+          codigo,tipo:bc.tipo,valor,identificado:!!temId,expira_em:expira.toISOString(),
+          descricao:valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'
+        }).select().single()
+        codigoGerado=cb
+      } else if(minAvals>1){
+        // Ainda não atingiu — mostra progresso
+        progresso={atual:totalAvals,total:minAvals,faltam:minAvals-totalAvals}
+      }
+    }
+    mostrarSucesso(codigoGerado,temId,nomeId,telId,progresso)
+  }catch(err){showToast('❌ '+err.message)}
+  setLoading(false)
+}
+function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
+  document.getElementById('avaliar-form').classList.add('hidden')
+  document.getElementById('avaliar-sucesso').classList.remove('hidden')
+  const hero=document.getElementById('suc-hero-el')
+  
+  if(progresso&&progresso.faltam>0){
+    // Ainda não atingiu o mínimo — mostra progresso
+    hero.style.background='linear-gradient(135deg,var(--brand),#A78BFA)'
+    hero.innerHTML=`
+      <div class="suc-icon">⭐</div>
+      <div class="suc-title">Obrigado pela avaliação!</div>
+      <div class="suc-sub">Você está chegando perto do seu bônus!</div>
+      <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;margin-top:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">${progresso.atual} de ${progresso.total} avaliações</div>
+        <div style="background:rgba(255,255,255,.2);border-radius:99px;height:10px;overflow:hidden">
+          <div style="background:#F5A623;height:100%;width:${(progresso.atual/progresso.total*100)}%;border-radius:99px;transition:.5s"></div>
+        </div>
+        <div style="font-size:12px;margin-top:8px;opacity:.85">Falta${progresso.faltam>1?'m':''} <b>${progresso.faltam}</b> avaliação${progresso.faltam>1?'ões':''} para ganhar seu bônus 🎁</div>
+      </div>`
+    return
+  }
+  
+  hero.style.background=identificado?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,var(--brand),#A78BFA)'
+  hero.innerHTML=`<div class="suc-icon">🎉</div><div class="suc-title">${identificado?'Obrigado, '+nome+'!':'Obrigado!'}</div><div class="suc-sub">${identificado?'Seu código chegou no WhatsApp!':'Salve seu código agora.'}</div>`
+  if(codigo){
+    document.getElementById('suc-bonus-desc').textContent='🎁 '+codigo.descricao
+    document.getElementById('suc-codigo').textContent=codigo.codigo
+    document.getElementById('suc-hint').textContent=identificado?'Enviado também no seu WhatsApp ✓':'⚠️ Salve agora — não será reenviado'
+    try{QRCode.toCanvas(document.getElementById('suc-qr'),codigo.codigo,{width:100,margin:1})}catch(e){}
+    if(identificado&&tel){
+      const tpl='🎁 Seu bônus chegou, {nome}!\nDesconto: {bonus_id} no {empresa}\nCódigo: *{codigo}*\nVálido até: {validade}\nMostre no caixa 😊'
+      const msg=montarMsg(tpl,{nome,empresa:avS.negocio.nome,codigo:codigo.codigo,bonus_id:codigo.descricao,validade:new Date(codigo.expira_em).toLocaleDateString('pt-BR')})
+      const btn=document.getElementById('suc-wpp-btn');btn.style.display='flex';btn.onclick=()=>window.open(linkWpp(tel,msg),'_blank')
+    }
+  }else{document.querySelector('.suc-wrap').innerHTML='<div style="text-align:center;padding:20px;font-size:14px;color:var(--muted)">Avaliação enviada! Obrigado 😊</div>'}
+}
+function copiarCodigo(){const c=document.getElementById('suc-codigo').textContent;navigator.clipboard?.writeText(c);showToast('✅ Código copiado!')}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initApp()
+  // Registra Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(err => console.log('SW erro:', err))
+  }
+
+  // Prompt de instalação PWA
+  let deferredPrompt
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault()
+    deferredPrompt = e
+    // Mostra modal após 2 segundos
+    setTimeout(() => {
+      if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+        showInstallBanner(deferredPrompt)
+      }
+    }, 2000)
+  })
+  // Se já instalado como PWA, não mostra
+  window.addEventListener('appinstalled', () => {
+    localStorage.setItem('pwa-dismissed','1')
+    showToast('✅ App instalado com sucesso!')
+  })
+})
+
+function showInstallBanner(prompt) {
+  if (localStorage.getItem('pwa-dismissed')) return
+  window._installPrompt = prompt
+
+  // Cria modal de alerta
+  const modal = document.createElement('div')
+  modal.id = 'install-modal'
+  modal.style.cssText = `
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+    animation:fadeIn .25s ease;
+  `
+  modal.innerHTML = `
+    <div style="
+      background:#fff;border-radius:24px;
+      padding:32px 28px;width:100%;max-width:340px;
+      text-align:center;
+      box-shadow:0 8px 40px rgba(0,0,0,.2);
+      animation:up .25s ease;
+    ">
+      <div style="
+        width:72px;height:64px;
+        border-radius:18px 18px 18px 6px;
+        background:linear-gradient(135deg,#6C3BF5,#A78BFA);
+        display:flex;align-items:center;justify-content:center;
+        font-size:30px;margin:0 auto 16px;
+        box-shadow:0 6px 20px rgba(108,59,245,.3);
+        position:relative;
+      ">⭐<div style="
+        position:absolute;bottom:-8px;left:9px;
+        width:15px;height:9px;
+        background:#A78BFA;
+        clip-path:polygon(0 0,100% 0,0 100%);
+      "></div></div>
+
+      <div style="font-size:20px;font-weight:800;color:#18141F;margin-bottom:8px">
+        Instalar AvaliaAí
+      </div>
+      <div style="font-size:14px;color:#7B6F8C;line-height:1.55;margin-bottom:24px">
+        Adicione o app à sua tela inicial para acessar mais rápido, sem abrir o navegador.
+      </div>
+
+      <button onclick="installPWA()" style="
+        width:100%;padding:14px;
+        background:#6C3BF5;color:#fff;
+        border:none;border-radius:12px;
+        font-family:inherit;font-size:15px;font-weight:700;
+        cursor:pointer;margin-bottom:10px;
+        box-shadow:0 4px 16px rgba(108,59,245,.3);
+      ">📲 Sim, instalar agora!</button>
+
+      <button onclick="dismissInstall()" style="
+        width:100%;padding:13px;
+        background:#F7F6FB;color:#7B6F8C;
+        border:none;border-radius:12px;
+        font-family:inherit;font-size:14px;font-weight:600;
+        cursor:pointer;
+      ">Agora não</button>
+    </div>
+  `
+  // Fecha ao clicar fora
+  modal.addEventListener('click', e => {
+    if(e.target === modal) dismissInstall()
+  })
+  document.body.appendChild(modal)
+}
+
+function installPWA() {
+  if (!window._installPrompt) return
+  window._installPrompt.prompt()
+  window._installPrompt.userChoice.then(result => {
+    document.getElementById('install-modal')?.remove()
+    if (result.outcome === 'accepted') {
+      showToast('✅ AvaliaAí instalado com sucesso!')
+    } else {
+      localStorage.setItem('pwa-dismissed', '1')
+    }
+    window._installPrompt = null
+  })
+}
+
+function dismissInstall() {
+  localStorage.setItem('pwa-dismissed', '1')
+  document.getElementById('install-banner')?.remove()
+  document.getElementById('install-modal')?.remove()
+}
+</script>
+</body>
+</html>
