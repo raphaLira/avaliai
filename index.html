@@ -2,8 +2,23 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>AvaliaAí</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#6C3BF5"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AvaliaAí"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"/>
+
+<!-- SEO básico -->
+<meta name="description" content="Feedbacks que fazem crescer — Sistema de avaliação com bônus para clientes"/>
+<meta name="robots" content="noindex"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -297,6 +312,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .eic-cfg-row:last-child{border-bottom:none}
 .eic-cfg-name{flex:1;font-size:12px;font-weight:600}
 @keyframes bounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -975,7 +991,9 @@ async function atualizarSidebar(){
   document.getElementById('dash-nome').textContent=S.negocio.nome
 
   // Garante user atualizado
-  if(!S.user){const{data:{user}}=await sb.auth.getUser();S.user=user}
+  // Sempre busca user atualizado do Supabase
+  try{const{data:{user}}=await sb.auth.getUser();if(user)S.user=user}catch(e){}
+  if(!S.user)return
   const email=S.user?.email||'—'
   const meta=S.user?.user_metadata
   const nome=meta?.full_name||meta?.name||email.split('@')[0]
@@ -1018,7 +1036,14 @@ async function carregarDashboard(){
     sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(10)
   ])
   if(res){
-    document.getElementById('kpi-nota').textContent=res.nota_media?parseFloat(res.nota_media).toFixed(1):'—'
+    // Calcula nota média direto
+  const{data:notaData}=await sb.from('avaliacoes').select('nota_geral').eq('negocio_id',id).not('nota_geral','is',null)
+  if(notaData?.length){
+    const media=notaData.reduce((s,a)=>s+(a.nota_geral||0),0)/notaData.length
+    document.getElementById('kpi-nota').textContent=media.toFixed(1)
+  } else {
+    document.getElementById('kpi-nota').textContent=res?.nota_media?parseFloat(res.nota_media).toFixed(1):'—'
+  }
     document.getElementById('kpi-avals').textContent=res.total_avaliacoes??0
     document.getElementById('kpi-clientes').textContent=res.total_clientes??0
     document.getElementById('kpi-bonus-g').textContent=res.bonus_ativos??0
@@ -1030,8 +1055,11 @@ async function carregarDashboard(){
     document.getElementById('dash-media-itens').innerHTML=mi.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span>${m.emoji||'⭐'} ${m.item_nome}</span><b style="color:${(m.nota_media||0)<3?'var(--rd)':'inherit'}">${m.nota_media??'—'}</b></div>`).join('')
   }
   const link=location.origin+'?slug='+S.negocio.slug
-  document.getElementById('dash-link-text').textContent='avaliai.app/'+S.negocio.slug
-  try{QRCode.toCanvas(document.getElementById('qr-canvas'),link,{width:60,margin:0})}catch(e){}
+  document.getElementById('dash-link-text').textContent=location.host+'?slug='+S.negocio.slug
+  try{
+    const canvas=document.getElementById('qr-canvas')
+    QRCode.toCanvas(canvas,link,{width:64,margin:1,color:{dark:'#6C3BF5',light:'#ffffff'}})
+  }catch(e){console.log('QR error:',e)}
   const fEl=document.getElementById('dash-feedbacks')
   if(!feeds?.length){fEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma avaliação ainda</div>';return}
   fEl.innerHTML=feeds.map(av=>{
@@ -1157,7 +1185,16 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
     }else if(btnNext){btnNext.style.display='none'}
   }
   document.getElementById('m-enviar-preview').textContent=msg
-  document.getElementById('m-enviar-wpp-btn').onclick=()=>{window.open(linkWpp(wpp,msg),'_blank');closeModalDirect('m-enviar')}
+  document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
+    window.open(linkWpp(wpp,msg),'_blank')
+    // Marca como enviado na lista se vier da lista
+    if(S._itemIdAtual){
+      await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
+      S._itemIdAtual=null
+    }
+    closeModalDirect('m-enviar')
+    carregarLista()
+  }
   openModal('m-enviar')
 }
 function confirmarAgendamento(){const d=document.getElementById('ag-data').value;if(!d)return showToast('Selecione data');closeModalDirect('m-agendar');showToast('✅ Agendado para '+d+' às '+document.getElementById('ag-hora').value,3500)}
@@ -1196,6 +1233,7 @@ async function carregarConfig(){
   await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
   setLoading(false)
   renderCfgItens()
+  console.log('Itens carregados:',S.itens.length,S.itens)
   const bc=S.bonusConfig
   if(bc){document.getElementById('cfg-bonus-tipo').value=bc.tipo;document.getElementById('cfg-bonus-anon').value=bc.valor_anonimo;document.getElementById('cfg-bonus-id').value=bc.valor_identificado;document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo;document.getElementById('cfg-bonus-validade').value=bc.validade_dias;if(!bc.bonus_anonimo_ativo)document.getElementById('cfg-toggle-anon').classList.remove('on')}
   document.getElementById('tpl-pedido').value=S.templates['pedido_avaliacao']||''
@@ -1249,7 +1287,21 @@ async function initAvaliar(slug,token){
   }
   document.getElementById('av-nome').textContent=neg.nome
   document.getElementById('av-tipo').textContent=neg.cidade||''
-  if(bc){document.getElementById('av-val-anon').textContent=bc.valor_anonimo+'% off';document.getElementById('av-val-id').textContent=bc.valor_identificado+'% off';document.getElementById('av-bonus-sub').textContent='Identifique-se para '+bc.valor_identificado+'% vs '+bc.valor_anonimo+'%'}
+  if(bc){
+    document.getElementById('av-val-id').textContent=bc.valor_identificado+'% off'
+    if(bc.bonus_anonimo_ativo){
+      document.getElementById('av-val-anon').textContent=bc.valor_anonimo+'% off'
+      document.getElementById('av-bonus-sub').textContent='Identifique-se para '+bc.valor_identificado+'% vs '+bc.valor_anonimo+'%'
+    } else {
+      // Esconde coluna anônima
+      const anonCol=document.getElementById('av-val-anon')?.closest('.bc')
+      if(anonCol)anonCol.style.display='none'
+      document.getElementById('av-bonus-sub').textContent='Avalie e ganhe '+bc.valor_identificado+'% de desconto!'
+      // Esconde link de pular identificação
+      const skip=document.getElementById('id-card')?.querySelector('.id-skip')
+      if(skip)skip.style.display='none'
+    }
+  }
   document.getElementById('av-itens-list').innerHTML=avS.itens.map((item,idx)=>`
     <div class="eval-item-card">
       <div class="eic-title">${item.emoji||'⭐'} ${item.nome}</div>
@@ -1265,10 +1317,9 @@ function skipId(){avS.identificado=false;const c=document.getElementById('id-car
 
 async function enviarAvaliacao(){
   const itensDados=avS.itens.map((item,idx)=>{
-    const sr=document.querySelector(`.mini-stars[data-item="${idx}"]`),er=document.querySelector(`.emoji-row[data-item="${idx}"]`)
+    const sr=document.querySelector(`.mini-stars[data-item="${idx}"]`)
     const nota=[...sr.querySelectorAll('.mstar.lit')].length||3
-    const humor=[...er.querySelectorAll('.emoji-btn')].findIndex(b=>b.classList.contains('lit'))+1
-    return{item_id:item.id,nota,humor:humor||null,comentario:document.getElementById('av-c-'+idx)?.value||null}
+    return{item_id:item.id,nota,humor:null,comentario:document.getElementById('av-c-'+idx)?.value||null}
   })
   const nomeId=document.getElementById('av-id-nome').value.trim(),telId=document.getElementById('av-id-tel').value.trim()
   const temId=avS.identificado&&nomeId&&telId
@@ -1313,7 +1364,116 @@ function mostrarSucesso(codigo,identificado,nome,tel){
 }
 function copiarCodigo(){const c=document.getElementById('suc-codigo').textContent;navigator.clipboard?.writeText(c);showToast('✅ Código copiado!')}
 
-window.addEventListener('DOMContentLoaded',initApp)
+window.addEventListener('DOMContentLoaded', () => {
+  initApp()
+  // Registra Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(err => console.log('SW erro:', err))
+  }
+
+  // Prompt de instalação PWA
+  let deferredPrompt
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault()
+    deferredPrompt = e
+    // Mostra banner de instalação após 3 segundos
+    setTimeout(() => {
+      if (deferredPrompt) showInstallBanner(deferredPrompt)
+    }, 3000)
+  })
+})
+
+function showInstallBanner(prompt) {
+  if (localStorage.getItem('pwa-dismissed')) return
+  window._installPrompt = prompt
+
+  // Cria modal de alerta
+  const modal = document.createElement('div')
+  modal.id = 'install-modal'
+  modal.style.cssText = `
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+    animation:fadeIn .25s ease;
+  `
+  modal.innerHTML = `
+    <div style="
+      background:#fff;border-radius:24px;
+      padding:32px 28px;width:100%;max-width:340px;
+      text-align:center;
+      box-shadow:0 8px 40px rgba(0,0,0,.2);
+      animation:up .25s ease;
+    ">
+      <div style="
+        width:72px;height:64px;
+        border-radius:18px 18px 18px 6px;
+        background:linear-gradient(135deg,#6C3BF5,#A78BFA);
+        display:flex;align-items:center;justify-content:center;
+        font-size:30px;margin:0 auto 16px;
+        box-shadow:0 6px 20px rgba(108,59,245,.3);
+        position:relative;
+      ">⭐<div style="
+        position:absolute;bottom:-8px;left:9px;
+        width:15px;height:9px;
+        background:#A78BFA;
+        clip-path:polygon(0 0,100% 0,0 100%);
+      "></div></div>
+
+      <div style="font-size:20px;font-weight:800;color:#18141F;margin-bottom:8px">
+        Instalar AvaliaAí
+      </div>
+      <div style="font-size:14px;color:#7B6F8C;line-height:1.55;margin-bottom:24px">
+        Adicione o app à sua tela inicial para acessar mais rápido, sem abrir o navegador.
+      </div>
+
+      <button onclick="installPWA()" style="
+        width:100%;padding:14px;
+        background:#6C3BF5;color:#fff;
+        border:none;border-radius:12px;
+        font-family:inherit;font-size:15px;font-weight:700;
+        cursor:pointer;margin-bottom:10px;
+        box-shadow:0 4px 16px rgba(108,59,245,.3);
+      ">📲 Sim, instalar agora!</button>
+
+      <button onclick="dismissInstall()" style="
+        width:100%;padding:13px;
+        background:#F7F6FB;color:#7B6F8C;
+        border:none;border-radius:12px;
+        font-family:inherit;font-size:14px;font-weight:600;
+        cursor:pointer;
+      ">Agora não</button>
+    </div>
+  `
+  // Fecha ao clicar fora
+  modal.addEventListener('click', e => {
+    if(e.target === modal) dismissInstall()
+  })
+  document.body.appendChild(modal)
+}
+
+function installPWA() {
+  if (!window._installPrompt) return
+  window._installPrompt.prompt()
+  window._installPrompt.userChoice.then(result => {
+    document.getElementById('install-modal')?.remove()
+    if (result.outcome === 'accepted') {
+      showToast('✅ AvaliaAí instalado com sucesso!')
+    } else {
+      localStorage.setItem('pwa-dismissed', '1')
+    }
+    window._installPrompt = null
+  })
+}
+
+function dismissInstall() {
+  localStorage.setItem('pwa-dismissed', '1')
+  document.getElementById('install-banner')?.remove()
+  document.getElementById('install-modal')?.remove()
+}
 </script>
 </body>
 </html>
