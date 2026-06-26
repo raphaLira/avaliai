@@ -617,6 +617,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div class="field"><label style="color:#92400E">Prefixo</label><input type="text" id="cfg-bonus-prefixo" value="AVA" maxlength="4"/></div>
             <div class="field"><label style="color:#92400E">Validade (dias)</label><input type="number" id="cfg-bonus-validade" value="30"/></div>
           </div>
+          <div class="bcfg-toggle" style="margin-top:12px">
+            <div><div class="tt">Exigir X avaliações para o bônus</div><div class="ts">Ative para dar bônus só após N avaliações</div></div>
+            <div class="amber-toggle" id="cfg-toggle-min-avals" onclick="toggleMinAvals()"></div>
+          </div>
+          <div id="cfg-min-avals-field" style="display:none;margin-top:10px">
+            <div class="field" style="margin-bottom:4px">
+              <label style="color:#92400E">Número de avaliações necessárias</label>
+              <input type="number" id="cfg-min-avals" value="3" min="2" max="20"/>
+            </div>
+            <div style="font-size:10px;color:#78350F;line-height:1.4">Ex: 3 = o cliente precisa avaliar 3 vezes para ganhar o bônus. O progresso aparece na tela do cliente.</div>
+          </div>
           <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarBonusConfig()">💾 Salvar bônus</button>
         </div>
         <div class="sec-title">Mensagens WhatsApp</div>
