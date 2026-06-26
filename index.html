@@ -688,8 +688,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="eval-biz-name" id="av-nome">—</div>
       <div class="eval-biz-type" id="av-tipo"></div>
       <div class="bonus-pill">
-        <div class="bp-icon">🎁</div>
-        <div><div class="bp-t1">Avalie e ganhe bônus!</div><div class="bp-t2" id="av-bonus-sub">Identifique-se para bônus maior</div></div>
+        <div class="bp-icon">💬</div>
+        <div>
+          <div class="bp-t1">Sua opinião faz a diferença!</div>
+          <div class="bp-t2">Ajude-nos a melhorar nosso atendimento</div>
+        </div>
       </div>
     </div>
     <div class="eval-wrap">
@@ -912,6 +915,7 @@ function renderOnbItens(){
   document.getElementById('onb-itens-list').innerHTML=S.onbItens.map((it,i)=>`<div class="ei-row"><span class="ei-name">${it.e||'⭐'} ${it.n||it}</span><button class="ei-del" onclick="delOnbItem(${i})">✕</button></div>`).join('')
 }
 function toggleAnonOnb(){const t=document.getElementById('toggle-anon-onb');t.classList.toggle('on');document.getElementById('anon-val-onb').style.display=t.classList.contains('on')?'block':'none';}
+function toggleMinOnb(){const t=document.getElementById('toggle-min-onb');t.classList.toggle('on');document.getElementById('min-avals-onb').style.display=t.classList.contains('on')?'block':'none';}
 function irStep(n){
   S.step=n
   for(let i=1;i<=5;i++)document.getElementById('onb-step-'+i).classList.toggle('hidden',i!==n)
@@ -946,7 +950,18 @@ async function salvarOnb(pular=false){
     S.negocio=neg
     await sb.rpc('criar_dados_iniciais',{p_negocio_id:neg.id})
     if(!pular&&S.onbItens.length)await sb.from('itens_avaliacao').insert(S.onbItens.map((it,i)=>({negocio_id:neg.id,nome:it.n||it,emoji:it.e||null,ordem:i})))
-    if(!pular)await sb.from('bonus_config').upsert({negocio_id:neg.id,tipo:document.getElementById('bonus-tipo').value,valor_anonimo:+(document.getElementById('bonus-anon').value)||5,valor_identificado:+(document.getElementById('bonus-id').value)||15,bonus_anonimo_ativo:document.getElementById('toggle-anon-onb').classList.contains('on'),prefixo_codigo:document.getElementById('bonus-prefixo').value||'AVA',validade_dias:+(document.getElementById('bonus-validade').value)||30},{onConflict:'negocio_id'})
+    if(!pular)await sb.from('bonus_config').upsert({
+      negocio_id:neg.id,
+      tipo:document.getElementById('bonus-tipo').value,
+      valor_anonimo:+(document.getElementById('bonus-anon').value)||5,
+      valor_identificado:+(document.getElementById('bonus-id').value)||15,
+      bonus_anonimo_ativo:document.getElementById('toggle-anon-onb').classList.contains('on'),
+      prefixo_codigo:document.getElementById('bonus-prefixo').value||'AVA',
+      validade_dias:+(document.getElementById('bonus-validade').value)||30,
+      min_avaliacoes:document.getElementById('toggle-min-onb')?.classList.contains('on')
+        ? +(document.getElementById('bonus-min-avals')?.value||3)
+        : 1
+    },{onConflict:'negocio_id'})
     await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
     atualizarSidebar()
     if(!pular){
@@ -1071,8 +1086,20 @@ async function carregarDashboard(){
   fEl.innerHTML=feeds.map(av=>{
     const n=Math.round(av.nota_geral||0),bom=n>=4
     const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
-    const itens=(av.avaliacao_itens||[]).map(ai=>`<div class="fi-item-r"><span class="fi-item-n">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span></div>`).join('')
-    return`<div class="fi"><div class="fi-top"><div>${'⭐'.repeat(n)} <span class="badge ${bom?'bg':'br'}">${bom?'Positivo':'Atenção'}</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:11px;font-weight:600;margin-bottom:4px">${nome}</div>${itens?`<div class="fi-items-list">${itens}</div>`:''}${av.comentario?`<div class="fi-comment">${av.comentario}</div>`:''}</div>`
+    const itens=(av.avaliacao_itens||[]).map(ai=>{
+      const comentarioItem=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;padding-left:4px">"${ai.comentario}"</div>`:''
+      return`<div class="fi-item-r" style="flex-direction:column;align-items:flex-start;gap:1px;padding:4px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span class="fi-item-n">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span></div>${comentarioItem}</div>`
+    }).join('')
+    const comentarioGeral=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:var(--text);line-height:1.5;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
+    return`<div class="fi">
+      <div class="fi-top">
+        <div>${'⭐'.repeat(n)} <span class="badge ${bom?'bg':'br'}">${bom?'Positivo':'Atenção'}</span></div>
+        <span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">${nome}</div>
+      ${itens?`<div class="fi-items-list" style="margin-bottom:4px">${itens}</div>`:''}
+      ${comentarioGeral}
+    </div>`
   }).join('')
 }
 function copiarLink(){navigator.clipboard?.writeText(location.origin+'?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
@@ -1317,11 +1344,29 @@ async function initAvaliar(slug,token){
   avS.itens=itens||[];avS.bc=bc
   // Verifica se link já foi usado
   if(token){
-    const{data:linkData}=await sb.from('links_avaliacao').select('usado').eq('token',token).maybeSingle()
+    const{data:linkData}=await sb.from('links_avaliacao').select('usado,cliente_id').eq('token',token).maybeSingle()
     if(linkData?.usado){
       setLoading(false)
       document.getElementById('avaliar-form').innerHTML=`<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Link já utilizado</div><div style="font-size:14px;color:var(--muted)">Este link de avaliação já foi usado.<br/>Peça um novo link ao estabelecimento.</div></div>`
       return
+    }
+    // Mostra progresso se min_avaliacoes > 1
+    if(bc&&bc.min_avaliacoes>1&&linkData?.cliente_id){
+      const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',neg.id).eq('cliente_id',linkData.cliente_id)
+      const atual=(count||0)+1
+      const total=bc.min_avaliacoes
+      if(atual<total){
+        const progressEl=document.createElement('div')
+        progressEl.style.cssText='background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:12px;padding:14px 16px;margin:12px 14px 0;color:#fff;text-align:center'
+        progressEl.innerHTML=`
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px">🎁 Progresso para o seu bônus</div>
+          <div style="font-size:13px;margin-bottom:8px">${atual} de ${total} avaliações</div>
+          <div style="background:rgba(255,255,255,.2);border-radius:99px;height:8px;overflow:hidden">
+            <div style="background:#F5A623;height:100%;width:${Math.round(atual/total*100)}%;border-radius:99px"></div>
+          </div>
+          <div style="font-size:11px;margin-top:6px;opacity:.85">Falta${total-atual>1?'m':''} <b>${total-atual}</b> avaliação${total-atual>1?'ões':''} para ganhar ${bc.valor_identificado}% de desconto!</div>`
+        document.getElementById('av-itens-list').before(progressEl)
+      }
     }
   }
   document.getElementById('av-nome').textContent=neg.nome
