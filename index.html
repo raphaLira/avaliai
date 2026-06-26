@@ -1124,18 +1124,52 @@ async function carregarClientes(busca=''){
   const{data}=await q
   const el=document.getElementById('lista-clientes')
   if(!data?.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum cliente</div>';return}
-  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${c.nome}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${c.nome}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost">✏️</button></div></div>`).join('')
+  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${c.nome}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${c.nome}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost" onclick="editarCliente('${c.id}','${c.nome}','${c.whatsapp}','${c.email||''}','${c.cpf||''}','${c.logradouro||''}','${c.numero||''}','${c.bairro||''}','${c.cep||''}','${c.cidade||''}','${c.uf||''}')">✏️</button></div></div>`).join('')
 }
 function buscarClientes(v){carregarClientes(v)}
+function editarCliente(id,nome,whatsapp,email,cpf,rua,num,bairro,cep,cidade,uf){
+  // Preenche o modal com dados do cliente
+  document.getElementById('nc-nome').value=nome||''
+  document.getElementById('nc-whatsapp').value=whatsapp||''
+  document.getElementById('nc-email').value=email||''
+  document.getElementById('nc-cpf').value=cpf||''
+  document.getElementById('nc-rua').value=rua||''
+  document.getElementById('nc-num').value=num||''
+  document.getElementById('nc-bairro').value=bairro||''
+  document.getElementById('nc-cep').value=cep||''
+  document.getElementById('nc-cidade').value=cidade||''
+  document.getElementById('nc-uf').value=uf||'SP'
+  // Guarda ID para atualizar
+  document.getElementById('nc-nome').dataset.editId=id
+  // Muda título do modal
+  document.querySelector('#m-novo-cliente .mtitle').textContent='✏️ Editar cliente'
+  openModal('m-novo-cliente')
+}
+
 async function salvarCliente(){
   const nome=document.getElementById('nc-nome').value.trim(),wpp=document.getElementById('nc-whatsapp').value.trim()
   if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
+  const editId=document.getElementById('nc-nome').dataset.editId
   setLoading(true)
-  const{error}=await sb.from('clientes').insert({negocio_id:S.negocio.id,nome,whatsapp:wpp,email:document.getElementById('nc-email').value||null,cpf:document.getElementById('nc-cpf').value||null,logradouro:document.getElementById('nc-rua').value||null,numero:document.getElementById('nc-num').value||null,bairro:document.getElementById('nc-bairro').value||null,cep:document.getElementById('nc-cep').value||null,cidade:document.getElementById('nc-cidade').value||null,uf:document.getElementById('nc-uf').value||null})
+  const dados={nome,whatsapp:wpp,email:document.getElementById('nc-email').value||null,cpf:document.getElementById('nc-cpf').value||null,logradouro:document.getElementById('nc-rua').value||null,numero:document.getElementById('nc-num').value||null,bairro:document.getElementById('nc-bairro').value||null,cep:document.getElementById('nc-cep').value||null,cidade:document.getElementById('nc-cidade').value||null,uf:document.getElementById('nc-uf').value||null}
+  let error
+  if(editId){
+    // Atualiza cliente existente
+    const res=await sb.from('clientes').update(dados).eq('id',editId)
+    error=res.error
+  } else {
+    // Cria novo cliente
+    const res=await sb.from('clientes').insert({negocio_id:S.negocio.id,...dados})
+    error=res.error
+  }
   setLoading(false)
   if(error)return showToast('❌ '+error.message)
-  closeModalDirect('m-novo-cliente');showToast('✅ Cliente salvo!');carregarClientes()
-  ;['nc-nome','nc-whatsapp','nc-email','nc-cpf','nc-rua','nc-num','nc-bairro','nc-cep','nc-cidade'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  closeModalDirect('m-novo-cliente')
+  showToast(editId?'✅ Cliente atualizado!':'✅ Cliente salvo!')
+  carregarClientes()
+  // Limpa campos e editId
+  ;['nc-nome','nc-whatsapp','nc-email','nc-cpf','nc-rua','nc-num','nc-bairro','nc-cep','nc-cidade'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId}})
+  document.querySelector('#m-novo-cliente .mtitle').textContent='👤 Novo cliente'
 }
 async function importarContatos(inp){
   const file=inp.files[0];if(!file)return
@@ -1347,62 +1381,88 @@ function prevTpl(id){const bc=S.bonusConfig,m={'{nome}':'João Silva','{empresa}
 
 // ── AVALIAR ──
 async function initAvaliar(slug,token){
-  showScreen('screen-avaliar');setLoading(true)
-  const{data:neg}=await sb.from('negocios').select('*').eq('slug',slug).maybeSingle()
-  if(!neg){setLoading(false);document.getElementById('avaliar-form').innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted)">❌ Negócio não encontrado</div>';return}
-  avS.negocio=neg;avS.token=token
-  const[{data:itens},{data:bc}]=await Promise.all([sb.from('itens_avaliacao').select('*').eq('negocio_id',neg.id).eq('ativo',true).order('ordem'),sb.from('bonus_config').select('*').eq('negocio_id',neg.id).maybeSingle()])
-  avS.itens=itens||[];avS.bc=bc
-  // Verifica se link já foi usado
-  if(token){
-    const{data:linkData}=await sb.from('links_avaliacao').select('usado,cliente_id').eq('token',token).maybeSingle()
-    if(linkData?.usado){
+  showScreen('screen-avaliar')
+  setLoading(true)
+  try{
+    const{data:neg}=await sb.from('negocios').select('*').eq('slug',slug).maybeSingle()
+    if(!neg){
       setLoading(false)
-      document.getElementById('avaliar-form').innerHTML=`<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Link já utilizado</div><div style="font-size:14px;color:var(--muted)">Este link de avaliação já foi usado.<br/>Peça um novo link ao estabelecimento.</div></div>`
+      document.getElementById('avaliar-form').innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted)">❌ Negócio não encontrado</div>'
       return
     }
-    // Mostra progresso se min_avaliacoes > 1
-    if(bc&&bc.min_avaliacoes>1&&linkData?.cliente_id){
-      const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',neg.id).eq('cliente_id',linkData.cliente_id)
-      const atual=(count||0)+1
-      const total=bc.min_avaliacoes
-      if(atual<total){
-        const progressEl=document.createElement('div')
-        progressEl.style.cssText='background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:12px;padding:14px 16px;margin:12px 14px 0;color:#fff;text-align:center'
-        progressEl.innerHTML=`
-          <div style="font-size:12px;font-weight:700;margin-bottom:6px">🎁 Progresso para o seu bônus</div>
-          <div style="font-size:13px;margin-bottom:8px">${atual} de ${total} avaliações</div>
-          <div style="background:rgba(255,255,255,.2);border-radius:99px;height:8px;overflow:hidden">
-            <div style="background:#F5A623;height:100%;width:${Math.round(atual/total*100)}%;border-radius:99px"></div>
-          </div>
-          <div style="font-size:11px;margin-top:6px;opacity:.85">Falta${total-atual>1?'m':''} <b>${total-atual}</b> avaliação${total-atual>1?'ões':''} para ganhar ${bc.valor_identificado}% de desconto!</div>`
-        document.getElementById('av-itens-list').before(progressEl)
+    avS.negocio=neg;avS.token=token
+
+    const[{data:itens},{data:bc}]=await Promise.all([
+      sb.from('itens_avaliacao').select('*').eq('negocio_id',neg.id).eq('ativo',true).order('ordem'),
+      sb.from('bonus_config').select('*').eq('negocio_id',neg.id).maybeSingle()
+    ])
+    avS.itens=itens||[];avS.bc=bc
+
+    // Preenche hero
+    document.getElementById('av-nome').textContent=neg.nome
+    document.getElementById('av-tipo').textContent=neg.cidade||''
+
+    // Configura bônus
+    if(bc){
+      document.getElementById('av-val-id').textContent=bc.valor_identificado+'% off'
+      if(bc.bonus_anonimo_ativo){
+        document.getElementById('av-val-anon').textContent=bc.valor_anonimo+'% off'
+      } else {
+        const anonCol=document.getElementById('av-val-anon')?.closest('.bc')
+        if(anonCol)anonCol.style.display='none'
+        const skip=document.getElementById('id-card')?.querySelector('.id-skip')
+        if(skip)skip.style.display='none'
+      }
+    } else {
+      // Sem bônus configurado — esconde card de identificação
+      document.getElementById('id-card').style.display='none'
+      document.querySelector('.btn-submit-eval').textContent='Enviar avaliação'
+    }
+
+    // Renderiza itens PRIMEIRO
+    const avIl=document.getElementById('av-itens-list')
+    if(!avS.itens.length){
+      avIl.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum item de avaliação configurado.</div>'
+    } else {
+      avIl.innerHTML=avS.itens.map((item,idx)=>`
+        <div class="eval-item-card">
+          <div class="eic-title">${item.emoji||'⭐'} ${item.nome}</div>
+          <div class="mini-stars" data-item="${idx}">${[1,2,3,4,5].map(n=>`<button class="mstar" onclick="setMStar(${idx},${n})" data-val="${n}">⭐</button>`).join('')}</div>
+          <textarea class="eic-comment" id="av-c-${idx}" placeholder="Comentário sobre ${item.nome} (opcional)…"></textarea>
+        </div>`).join('')
+    }
+
+    // Verifica link e progresso DEPOIS de renderizar
+    if(token){
+      const{data:linkData}=await sb.from('links_avaliacao').select('usado,cliente_id').eq('token',token).maybeSingle()
+      if(linkData?.usado){
+        setLoading(false)
+        document.getElementById('avaliar-form').innerHTML=`<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Link já utilizado</div><div style="font-size:14px;color:var(--muted)">Este link de avaliação já foi usado.<br/>Peça um novo link ao estabelecimento.</div></div>`
+        return
+      }
+      // Progresso de avaliações
+      if(bc&&bc.min_avaliacoes>1&&linkData?.cliente_id){
+        const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',neg.id).eq('cliente_id',linkData.cliente_id)
+        const atual=(count||0)+1
+        const total=bc.min_avaliacoes
+        if(atual<total){
+          const progressEl=document.createElement('div')
+          progressEl.style.cssText='background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:#fff;text-align:center'
+          progressEl.innerHTML=`
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px">🎁 Progresso para o seu bônus</div>
+            <div style="font-size:13px;margin-bottom:8px">${atual} de ${total} avaliações</div>
+            <div style="background:rgba(255,255,255,.2);border-radius:99px;height:8px;overflow:hidden">
+              <div style="background:#F5A623;height:100%;width:${Math.round(atual/total*100)}%;border-radius:99px"></div>
+            </div>
+            <div style="font-size:11px;margin-top:6px;opacity:.85">Falta${total-atual>1?'m':''} <b>${total-atual}</b> para ganhar ${bc.valor_identificado}% de desconto!</div>`
+          avIl.prepend(progressEl)
+        }
       }
     }
+  } catch(err){
+    console.error('Erro initAvaliar:',err)
+    showToast('❌ Erro ao carregar avaliação')
   }
-  document.getElementById('av-nome').textContent=neg.nome
-  document.getElementById('av-tipo').textContent=neg.cidade||''
-  if(bc){
-    document.getElementById('av-val-id').textContent=bc.valor_identificado+'% off'
-    if(bc.bonus_anonimo_ativo){
-      document.getElementById('av-val-anon').textContent=bc.valor_anonimo+'% off'
-      document.getElementById('av-bonus-sub').textContent='Identifique-se para '+bc.valor_identificado+'% vs '+bc.valor_anonimo+'%'
-    } else {
-      // Esconde coluna anônima
-      const anonCol=document.getElementById('av-val-anon')?.closest('.bc')
-      if(anonCol)anonCol.style.display='none'
-      document.getElementById('av-bonus-sub').textContent='Avalie e ganhe '+bc.valor_identificado+'% de desconto!'
-      // Esconde link de pular identificação
-      const skip=document.getElementById('id-card')?.querySelector('.id-skip')
-      if(skip)skip.style.display='none'
-    }
-  }
-  document.getElementById('av-itens-list').innerHTML=avS.itens.map((item,idx)=>`
-    <div class="eval-item-card">
-      <div class="eic-title">${item.emoji||'⭐'} ${item.nome}</div>
-      <div class="mini-stars" data-item="${idx}">${[1,2,3,4,5].map(n=>`<button class="mstar" onclick="setMStar(${idx},${n})" data-val="${n}">⭐</button>`).join('')}</div>
-      <textarea class="eic-comment" id="av-c-${idx}" placeholder="Comentário sobre ${item.nome} (opcional)…"></textarea>
-    </div>`).join('')
   setLoading(false)
 }
 function setEmoji(idx,val){document.querySelector(`.emoji-row[data-item="${idx}"]`).querySelectorAll('.emoji-btn').forEach(b=>b.classList.toggle('lit',+b.dataset.val===val))}
