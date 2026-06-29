@@ -377,7 +377,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div id="onb-step-1">
       <div class="step-hero"><div class="step-emoji">🏪</div><div class="step-title">Como se chama seu negócio?</div><div class="step-sub">Este nome aparecerá para os clientes.</div></div>
       <div class="card">
-        <div class="field"><label>Nome do estabelecimento</label><input type="text" id="onb-nome" placeholder="Ex: Lava-Jato do Zé"/></div>
+        <div class="field"><label>Nome do estabelecimento</label><input type="text" id="onb-nome" placeholder="Ex: Lava-Jato do Zé" oninput="autoSlug(this.value)"/></div>
         <div class="field"><label>Link personalizado</label>
           <div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden" id="slug-wrap">
             <span style="padding:10px;font-size:11px;color:var(--muted);background:var(--bg);border-right:1.5px solid var(--border);white-space:nowrap">avaliai.app/</span>
@@ -537,6 +537,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               oninput="buscarParaLista(this.value)"/>
           </div>
           <div id="lista-busca-results"></div>
+          <div style="text-align:center;margin-top:8px">
+            <button class="btn btn-ghost btn-full" onclick="openModal('m-novo-na-lista')" style="font-size:13px">
+              👤 Cadastrar novo cliente e adicionar à lista
+            </button>
+          </div>
         </div>
         <div class="list-header">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
@@ -664,11 +669,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="card">
           <div class="field"><label>Nome</label><input type="text" id="cfg-nome-negocio"/></div>
           <div class="field"><label>Ramo</label><select id="cfg-ramo"><option value="lava_jato">🚗 Lava-Jato</option><option value="restaurante">🍔 Restaurante</option><option value="salao">💇 Salão</option><option value="loja">🛍️ Loja</option><option value="saude">🏥 Saúde</option><option value="outro">📦 Outro</option></select></div>
-          <div class="field"><label>Slug (link)</label>
-            <div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
-              <span style="padding:10px;font-size:11px;color:var(--muted);background:var(--bg);border-right:1.5px solid var(--border);white-space:nowrap">avaliai.app/</span>
-              <input type="text" id="cfg-slug" style="border:none;outline:none;padding:10px 12px;font-family:inherit;font-size:13px;flex:1;background:#fff;color:var(--text)"/>
+          <div class="field">
+            <label>Link de avaliação</label>
+            <div style="display:flex;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;gap:6px">
+              <span style="font-size:12px;color:var(--muted)">avaliai-weld.vercel.app/?slug=</span>
+              <span style="font-size:13px;font-weight:700;color:var(--brand)" id="cfg-slug-display">—</span>
             </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">O link é gerado automaticamente pelo nome do negócio</div>
           </div>
           <button class="btn btn-primary btn-full" onclick="salvarNegocio()">💾 Salvar</button>
         </div>
@@ -791,6 +798,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<div class="modal-bg" id="m-novo-na-lista" onclick="closeModal(event,'m-novo-na-lista')">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">👤 Novo cliente + Lista</div>
+    <div class="msub">Cadastra o cliente e já adiciona na lista de disparo</div>
+    <div class="field"><label>Nome *</label><input type="text" id="nl-nome" placeholder="Ex: João Silva"/></div>
+    <div class="field"><label>WhatsApp *</label><input type="tel" id="nl-whatsapp" placeholder="(11) 99999-9999"/></div>
+    <button class="btn btn-primary btn-full" onclick="novoClienteNaLista()">➕ Cadastrar e adicionar à lista</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-agendar" onclick="closeModal(event,'m-agendar')">
   <div class="modal">
     <div class="mhandle"></div><div class="mtitle">⏰ Agendar disparo</div><div class="msub">Todos os clientes da lista receberão</div>
@@ -809,10 +827,53 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <button class="btn btn-ghost btn-full" onclick="closeModalDirect('m-preview')">Fechar</button>
   </div>
 </div>
+<!-- ══ AGUARDANDO APROVAÇÃO ══ -->
+<div id="screen-aguardando" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
+  <div style="background:#fff;border-radius:24px;padding:40px 28px;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow)">
+    <div style="font-size:56px;margin-bottom:16px">⏳</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Cadastro em análise</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px">Seu cadastro foi recebido e está aguardando aprovação. Você receberá um email quando for aprovado.</div>
+    <div style="background:var(--brand-light);border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;color:var(--brand);font-weight:600">📧 Verifique seu email para atualizações</div>
+    <button class="btn btn-danger btn-full" onclick="fazerLogout()">🚪 Sair</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN ══ -->
+<div id="screen-admin" class="hidden" style="min-height:100vh;background:var(--bg)">
+  <div style="background:#0D0D0F;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:28px;border-radius:8px 8px 8px 3px;background:linear-gradient(135deg,var(--amber),#E8870A);display:flex;align-items:center;justify-content:center;font-size:13px">⭐</div>
+      <span style="font-size:16px;font-weight:800;color:#F7F5F0">AvaliaAí <span style="color:var(--amber);font-size:12px">ADM</span></span>
+    </div>
+    <button onclick="fazerLogout()" style="background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer">Sair</button>
+  </div>
+
+  <div style="max-width:720px;margin:0 auto;padding:20px 14px 48px">
+
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px" id="admin-kpis">
+      <div class="card" style="text-align:center"><div style="font-size:28px;font-weight:800;color:var(--brand)" id="adm-total">—</div><div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Total cadastros</div></div>
+      <div class="card" style="text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)" id="adm-ativos">—</div><div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Aprovados</div></div>
+      <div class="card" style="text-align:center"><div style="font-size:28px;font-weight:800;color:var(--yellow)" id="adm-pendentes">—</div><div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Pendentes</div></div>
+      <div class="card" style="text-align:center"><div style="font-size:28px;font-weight:800;color:var(--brand)" id="adm-avals">—</div><div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Total avaliações</div></div>
+    </div>
+
+    <!-- Pendentes de aprovação -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">⏳ Aguardando aprovação</div>
+    <div id="admin-pendentes"><div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum pendente</div></div>
+
+    <!-- Todos os usuários -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;margin-top:20px">👥 Todos os comerciantes</div>
+    <div id="admin-usuarios"><div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Carregando…</div></div>
+
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://axxhwkntzxjytwscxgdo.supabase.co'
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4eGh3a250enhqeXR3c2N4Z2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTg3ODUsImV4cCI6MjA5NTk5NDc4NX0.oskX5hISpfY148YzhdrAGJ4MD5ytYC2WCoh0eb0JLtw'
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY)
+const ADMIN_EMAIL='raphaellirasilva@gmail.com'
 
 let S={user:null,negocio:null,bonusConfig:null,itens:[],templates:{},ramo:'lava_jato',onbItens:[],step:1,codigoAtual:null}
 let avS={negocio:null,itens:[],bc:null,token:null,identificado:true}
@@ -820,7 +881,7 @@ let avS={negocio:null,itens:[],bc:null,token:null,identificado:true}
 // ── UTILS ──
 function showToast(m,d=2800){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d)}
 function setLoading(v){document.getElementById('loading').classList.toggle('hidden',!v)}
-function showScreen(id){['screen-login','screen-onboarding','screen-app','screen-avaliar'].forEach(s=>document.getElementById(s).classList.add('hidden'));document.getElementById(id).classList.remove('hidden')}
+function showScreen(id){['screen-login','screen-onboarding','screen-app','screen-avaliar','screen-aguardando','screen-admin'].forEach(s=>document.getElementById(s).classList.add('hidden'));document.getElementById(id).classList.remove('hidden')}
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(e,id){if(e.target.classList.contains('modal-bg'))document.getElementById(id).classList.remove('open')}
 function closeModalDirect(id){document.getElementById(id).classList.remove('open')}
@@ -864,9 +925,35 @@ async function initApp(){
 
 async function carregarNegocio(){
   setLoading(true)
+
+  // Admin vai direto para o painel
+  if(S.user?.email===ADMIN_EMAIL){
+    showScreen('screen-admin')
+    await carregarAdmin()
+    setLoading(false)
+    return
+  }
+
+  // Verifica aprovação
+  const{data:pCheck}=await sb.from('perfis').select('aprovado').eq('id',S.user.id).maybeSingle()
+  if(pCheck&&pCheck.aprovado===false){
+    showScreen('screen-aguardando')
+    setLoading(false)
+    return
+  }
+
   const{data}=await sb.from('negocios').select('*').eq('dono_id',S.user.id).eq('ativo',true).order('criado_em').limit(1).maybeSingle()
-  if(data){S.negocio=data;await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()]);await atualizarSidebar();showScreen('screen-app');navTo('dashboard');await carregarDashboard()}
-  else{showScreen('screen-onboarding');initOnb()}
+  if(data){
+    S.negocio=data
+    await Promise.all([carregarItens(),carregarBonusConfig(),carregarTemplates()])
+    await atualizarSidebar()
+    showScreen('screen-app')
+    navTo('dashboard')
+    await carregarDashboard()
+  } else {
+    showScreen('screen-onboarding')
+    initOnb()
+  }
   setLoading(false)
 }
 
@@ -881,9 +968,20 @@ async function loginEmail(){
 async function cadastrarEmail(){
   const n=document.getElementById('cad-nome').value,e=document.getElementById('cad-email').value,s=document.getElementById('cad-senha').value
   if(!n||!e||!s)return showToast('Preencha todos os campos')
-  setLoading(true);const{data,error}=await sb.auth.signUp({email:e,password:s,options:{data:{full_name:n}}});setLoading(false)
+  setLoading(true)
+  const{data,error}=await sb.auth.signUp({email:e,password:s,options:{data:{full_name:n}}})
+  setLoading(false)
   if(error)return showToast('❌ '+error.message)
-  S.user=data.user;showToast('✅ Conta criada!');await carregarNegocio();await atualizarSidebar()
+  S.user=data.user
+  // Marca como pendente de aprovação
+  if(e!==ADMIN_EMAIL){
+    await sb.from('perfis').update({aprovado:false}).eq('id',data.user.id)
+    showScreen('screen-aguardando')
+    // Notifica admin por email via Supabase Edge Function (configurar depois)
+    await sb.functions.invoke('notificar-admin',{body:{nome:n,email:e}}).catch(()=>{})
+    return
+  }
+  await carregarNegocio()
 }
 function toggleAnonCfg(){
   const t=document.getElementById('cfg-toggle-anon')
@@ -908,6 +1006,12 @@ function switchLoginTab(t){
 const SUGS={lava_jato:[{e:'🚿',n:'Lavagem Externa'},{e:'🪣',n:'Lavagem Interna'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Prazo / Agilidade'},{e:'🧴',n:'Polimento / Cera'},{e:'💰',n:'Preço'}],restaurante:[{e:'🍽️',n:'Qualidade do Prato'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Tempo de Espera'},{e:'🏠',n:'Ambiente'},{e:'💰',n:'Preço'}],salao:[{e:'✂️',n:'Corte / Serviço'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Pontualidade'},{e:'🧴',n:'Produtos'},{e:'💰',n:'Preço'}],loja:[{e:'🛍️',n:'Produto'},{e:'🙋',n:'Atendimento'},{e:'🏠',n:'Organização'},{e:'💰',n:'Preço'}],saude:[{e:'🏥',n:'Atendimento Médico'},{e:'🙋',n:'Recepção'},{e:'⏱️',n:'Pontualidade'},{e:'🏠',n:'Estrutura'},{e:'💰',n:'Preço'}],outro:[{e:'⭐',n:'Qualidade'},{e:'🙋',n:'Atendimento'},{e:'⏱️',n:'Prazo'},{e:'💰',n:'Preço'}]}
 
 function initOnb(){S.step=1;S.onbItens=[];S.ramo='lava_jato';irStep(1)}
+function autoSlug(nome){
+  const slug=gerarSlug(nome)
+  const inp=document.getElementById('onb-slug')
+  if(inp)inp.value=slug
+}
+
 function selRamo(el,r){document.querySelectorAll('.ramo-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.ramo=r}
 function atualizarSugs(){
   const el=document.getElementById('sugestoes')
@@ -1207,6 +1311,22 @@ async function buscarParaLista(busca){
   if(!data?.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:5px 0">Nenhum cliente encontrado</div>';return}
   el.innerHTML=data.map(c=>`<div class="search-result-item" style="padding:12px 14px;margin-bottom:7px;border:1px solid var(--border)"><div class="li-av" style="width:38px;height:38px;font-size:13px">${ini(c.nome)}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${c.nome}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${c.whatsapp}</div></div><button class="btn btn-primary" style="padding:10px 16px;font-size:13px" onclick="adicionarLista('${c.id}')">+ Adicionar</button></div>`).join('')
 }
+async function novoClienteNaLista(){
+  const nome=document.getElementById('nl-nome').value.trim()
+  const wpp=document.getElementById('nl-whatsapp').value.trim()
+  if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
+  setLoading(true)
+  // Upsert cliente
+  const{data:cli,error}=await sb.from('clientes').upsert({
+    negocio_id:S.negocio.id,nome,whatsapp:wpp,origem:'lista'
+  },{onConflict:'negocio_id,whatsapp'}).select().single()
+  if(error){setLoading(false);return showToast('❌ '+error.message)}
+  closeModalDirect('m-novo-na-lista')
+  document.getElementById('nl-nome').value=''
+  document.getElementById('nl-whatsapp').value=''
+  await adicionarLista(cli.id)
+}
+
 async function adicionarLista(cId){
   setLoading(true)
   const{data:link}=await sb.from('links_avaliacao').insert({negocio_id:S.negocio.id,cliente_id:cId}).select().single()
@@ -1244,7 +1364,13 @@ async function dispararProximo(){
 async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   let token=null
   if(linkId){const{data}=await sb.from('links_avaliacao').select('token').eq('id',linkId).maybeSingle();token=data?.token}
-  const link=token?location.origin+'?slug='+S.negocio.slug+'&a='+token:location.origin+'?slug='+S.negocio.slug
+  // Link com nome e tel para pré-preencher tela do cliente
+  let link=token
+    ? location.origin+'?slug='+S.negocio.slug+'&a='+token
+    : location.origin+'?slug='+S.negocio.slug
+  if(nome&&wpp){
+    link+='&nome='+encodeURIComponent(nome)+'&tel='+encodeURIComponent(wpp.replace(/\D/g,''))
+  }
   const bc=S.bonusConfig,tpl=S.templates['pedido_avaliacao']||'Olá {nome}! Avalie o {empresa}: {link}'
   const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bc?bc.valor_identificado+'%':'bônus',bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
   document.getElementById('m-enviar-sub').textContent=(atual&&total?`(${atual}/${total}) `:'')+'Para '+nome+' · '+wpp
@@ -1336,7 +1462,8 @@ async function carregarConfig(){
   document.getElementById('tpl-codigo').value=S.templates['envio_codigo']||''
   document.getElementById('cfg-nome-negocio').value=S.negocio.nome
   document.getElementById('cfg-ramo').value=S.negocio.ramo
-  document.getElementById('cfg-slug').value=S.negocio.slug
+  const display=document.getElementById('cfg-slug-display')
+  if(display)display.textContent=S.negocio.slug||'—'
 }
 function renderCfgItens(){
   const el=document.getElementById('cfg-itens-list')
@@ -1375,7 +1502,25 @@ async function salvarBonusConfig(){
   showToast('✅ Bônus salvo!')
 }
 async function salvarTemplate(tipo,id){const c=document.getElementById(id).value.trim();if(!c)return showToast('Digite o conteúdo');setLoading(true);const{error}=await sb.from('templates_mensagem').upsert({negocio_id:S.negocio.id,tipo,conteudo:c,titulo:tipo},{onConflict:'negocio_id,tipo'});setLoading(false);if(error)return showToast('❌ '+error.message);await carregarTemplates();showToast('✅ Template salvo!')}
-async function salvarNegocio(){const nome=document.getElementById('cfg-nome-negocio').value.trim(),slug=document.getElementById('cfg-slug').value.trim();if(!nome||!slug)return showToast('Preencha nome e slug');setLoading(true);const{error}=await sb.from('negocios').update({nome,slug,ramo:document.getElementById('cfg-ramo').value}).eq('id',S.negocio.id);setLoading(false);if(error)return showToast('❌ '+error.message);S.negocio.nome=nome;S.negocio.slug=slug;await atualizarSidebar();showToast('✅ Negócio atualizado!')}
+async function salvarNegocio(){
+  const nome=document.getElementById('cfg-nome-negocio').value.trim()
+  if(!nome)return showToast('Preencha o nome')
+  // Gera slug automaticamente pelo nome
+  let slug=gerarSlug(nome)
+  // Verifica se slug já existe em outro negócio
+  const{data:existe}=await sb.from('negocios').select('id').eq('slug',slug).neq('id',S.negocio.id).maybeSingle()
+  if(existe)slug=slug+'-'+Date.now().toString().slice(-4)
+  setLoading(true)
+  const{error}=await sb.from('negocios').update({nome,slug,ramo:document.getElementById('cfg-ramo').value}).eq('id',S.negocio.id)
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  S.negocio.nome=nome;S.negocio.slug=slug
+  await atualizarSidebar()
+  // Atualiza display do slug
+  const display=document.getElementById('cfg-slug-display')
+  if(display)display.textContent=slug
+  showToast('✅ Negócio atualizado!')
+}
 function insVar(id,v){const ta=document.getElementById(id),s=ta.selectionStart,e=ta.selectionEnd;ta.value=ta.value.slice(0,s)+v+ta.value.slice(e);ta.focus();ta.selectionStart=ta.selectionEnd=s+v.length}
 function prevTpl(id){const bc=S.bonusConfig,m={'{nome}':'João Silva','{empresa}':S.negocio?.nome||'Negócio','{link}':location.origin+'?slug='+(S.negocio?.slug||'link'),'{bonus_id}':(bc?.valor_identificado||15)+'%','{bonus_anon}':(bc?.valor_anonimo||5)+'%','{codigo}':'AVA-X7K2-M9','{validade}':'22/07/2026'};let msg=document.getElementById(id).value;Object.entries(m).forEach(([k,v])=>msg=msg.replaceAll(k,v));document.getElementById('preview-content').textContent=msg;openModal('m-preview')}
 
@@ -1400,6 +1545,19 @@ async function initAvaliar(slug,token){
 
     // Preenche hero
     document.getElementById('av-nome').textContent=neg.nome
+  // Pré-preenche nome e tel se vieram na URL
+  const urlParams=new URLSearchParams(location.search)
+  const nomeParam=urlParams.get('nome')
+  const telParam=urlParams.get('tel')
+  if(nomeParam){
+    const nomeInp=document.getElementById('av-id-nome')
+    if(nomeInp)nomeInp.value=decodeURIComponent(nomeParam)
+  }
+  if(telParam){
+    const telInp=document.getElementById('av-id-tel')
+    const telFormatado=telParam.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3')
+    if(telInp)telInp.value=telFormatado
+  }
     document.getElementById('av-tipo').textContent=neg.cidade||''
 
     // Configura bônus
@@ -1475,12 +1633,23 @@ async function enviarAvaliacao(){
     const nota=[...sr.querySelectorAll('.mstar.lit')].length||3
     return{item_id:item.id,nota,humor:null,comentario:document.getElementById('av-c-'+idx)?.value||null}
   })
-  const nomeId=document.getElementById('av-id-nome').value.trim(),telId=document.getElementById('av-id-tel').value.trim()
-  const temId=avS.identificado&&nomeId&&telId
+  const nomeId=document.getElementById('av-id-nome').value.trim()
+  const telId=document.getElementById('av-id-tel').value.trim().replace(/\D/g,'')
+  const temId=avS.identificado&&nomeId&&telId.length>=10
   setLoading(true)
   try{
     let cId=null
-    if(temId){const{data:cli}=await sb.from('clientes').upsert({negocio_id:avS.negocio.id,nome:nomeId,whatsapp:telId,origem:'avaliacao'},{onConflict:'negocio_id,whatsapp'}).select().single();cId=cli?.id}
+    if(nomeId&&telId){
+      // Cadastra automaticamente quem se identificar (cliente novo ou existente)
+      const wppLimpo=telId.replace(/\D/g,'')
+      const{data:cli}=await sb.from('clientes').upsert({
+        negocio_id:avS.negocio.id,
+        nome:nomeId,
+        whatsapp:wppLimpo,
+        origem:'avaliacao'
+      },{onConflict:'negocio_id,whatsapp'}).select().single()
+      cId=cli?.id
+    }
     let linkId=null
     if(avS.token){const{data}=await sb.from('links_avaliacao').select('id').eq('token',avS.token).maybeSingle();linkId=data?.id}
     const{data:av}=await sb.from('avaliacoes').insert({negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:nomeId||null,avaliador_whatsapp:telId||null}).select().single()
@@ -1557,6 +1726,103 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
 }
 function copiarCodigo(){const c=document.getElementById('suc-codigo').textContent;navigator.clipboard?.writeText(c);showToast('✅ Código copiado!')}
 
+function gerarSlug(nome){
+  return nome.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s-]/g,'')
+    .trim().replace(/\s+/g,'-')
+    .replace(/-+/g,'-')
+}
+
+// ── ADMIN FUNCTIONS ──
+async function carregarAdmin(){
+  // KPIs
+  const[{data:perfis},{data:negocios},{data:avals}]=await Promise.all([
+    sb.from('perfis').select('id,nome,email,aprovado,criado_em'),
+    sb.from('negocios').select('id,nome,slug,ramo,dono_id,criado_em'),
+    sb.from('avaliacoes').select('id',{count:'exact',head:true})
+  ])
+
+  const total=perfis?.length||0
+  const aprovados=perfis?.filter(p=>p.aprovado!==false).length||0
+  const pendentes=perfis?.filter(p=>p.aprovado===false).length||0
+
+  document.getElementById('adm-total').textContent=total
+  document.getElementById('adm-ativos').textContent=aprovados
+  document.getElementById('adm-pendentes').textContent=pendentes
+  document.getElementById('adm-avals').textContent=avals?.count||0
+
+  // Pendentes
+  const pendList=perfis?.filter(p=>p.aprovado===false)||[]
+  const pendEl=document.getElementById('admin-pendentes')
+  if(!pendList.length){
+    pendEl.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;background:#fff;border-radius:12px">✅ Nenhum cadastro pendente</div>'
+  } else {
+    pendEl.innerHTML=pendList.map(p=>`
+      <div style="background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:10px;border-left:4px solid var(--yellow)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${p.nome||'—'}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:1px">${p.email}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">Cadastrou em ${fmtDate(p.criado_em)}</div>
+          </div>
+          <span class="badge by">⏳ Pendente</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green" style="flex:1" onclick="aprovarUsuario('${p.id}','${p.email}','${p.nome}')">✅ Aprovar</button>
+          <button class="btn btn-danger" onclick="rejeitarUsuario('${p.id}')">❌ Rejeitar</button>
+        </div>
+      </div>`).join('')
+  }
+
+  // Todos usuários
+  const usersEl=document.getElementById('admin-usuarios')
+  if(!perfis?.length){
+    usersEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum usuário</div>'
+  } else {
+    usersEl.innerHTML=perfis.map(p=>{
+      const neg=negocios?.find(n=>n.dono_id===p.id)
+      const aprovado=p.aprovado!==false
+      return`<div style="background:#fff;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:8px;display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#A78BFA);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0">${(p.nome||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${p.nome||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${p.email}</div>
+          ${neg?`<div style="font-size:10px;color:var(--brand);margin-top:2px">🏪 ${neg.nome}</div>`:'<div style="font-size:10px;color:var(--muted);margin-top:2px">Sem negócio</div>'}
+        </div>
+        <span class="badge ${aprovado?'bg':'by'}">${aprovado?'✓ Ativo':'⏳ Pendente'}</span>
+        ${aprovado?`<button class="btn btn-danger" style="font-size:11px;padding:6px 10px" onclick="bloquearUsuario('${p.id}')">🚫</button>`:`<button class="btn btn-green" style="font-size:11px;padding:6px 10px" onclick="aprovarUsuario('${p.id}','${p.email}','${p.nome}')">✅</button>`}
+      </div>`
+    }).join('')
+  }
+}
+
+async function aprovarUsuario(id,email,nome){
+  setLoading(true)
+  await sb.from('perfis').update({aprovado:true}).eq('id',id)
+  setLoading(false)
+  showToast(`✅ ${nome||email} aprovado!`)
+  await carregarAdmin()
+}
+
+async function rejeitarUsuario(id){
+  if(!confirm('Rejeitar e apagar este cadastro?'))return
+  setLoading(true)
+  await sb.from('perfis').delete().eq('id',id)
+  setLoading(false)
+  showToast('🗑️ Cadastro rejeitado')
+  await carregarAdmin()
+}
+
+async function bloquearUsuario(id){
+  setLoading(true)
+  await sb.from('perfis').update({aprovado:false}).eq('id',id)
+  setLoading(false)
+  showToast('🚫 Usuário bloqueado')
+  await carregarAdmin()
+}
+
+// ── APP INIT ──
 window.addEventListener('DOMContentLoaded', () => {
   initApp()
   // Registra Service Worker
