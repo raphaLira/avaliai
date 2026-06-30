@@ -1581,19 +1581,6 @@ async function initAvaliar(slug,token){
 
     // Preenche hero
     document.getElementById('av-nome').textContent=neg.nome
-  // Pré-preenche nome e tel se vieram na URL
-  const urlParams=new URLSearchParams(location.search)
-  const nomeParam=urlParams.get('nome')
-  const telParam=urlParams.get('tel')
-  if(nomeParam){
-    const nomeInp=document.getElementById('av-id-nome')
-    if(nomeInp)nomeInp.value=decodeURIComponent(nomeParam)
-  }
-  if(telParam){
-    const telInp=document.getElementById('av-id-tel')
-    const telFormatado=telParam.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3')
-    if(telInp)telInp.value=telFormatado
-  }
     document.getElementById('av-tipo').textContent=neg.cidade||''
 
     // Configura bônus
@@ -1644,6 +1631,23 @@ async function initAvaliar(slug,token){
           avIl.prepend(progressEl)
         }
       }
+    }
+
+    // Pré-preenche nome e tel se vieram na URL (após id-card estar pronto)
+    const urlParams=new URLSearchParams(location.search)
+    const nomeParam=urlParams.get('nome')
+    const telParam=urlParams.get('tel')
+    if(nomeParam){
+      const nomeInp=document.getElementById('av-id-nome')
+      if(nomeInp)nomeInp.value=decodeURIComponent(nomeParam)
+    }
+    if(telParam){
+      const telInp=document.getElementById('av-id-tel')
+      const telLimpo=decodeURIComponent(telParam).replace(/\D/g,'')
+      const telFormatado=telLimpo.length===11
+        ? telLimpo.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3')
+        : telLimpo
+      if(telInp)telInp.value=telFormatado
     }
   } catch(err){
     console.error('Erro initAvaliar:',err)
