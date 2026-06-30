@@ -1105,7 +1105,7 @@ function montarResumo(){
     <div class="summary-row"><div class="sum-icon">⭐</div><div><div class="sum-label">Itens de avaliação</div><div class="sum-val">${nItens} itens configurados</div></div></div>
     <div class="summary-row" style="border:none"><div class="sum-icon">🎁</div><div><div class="sum-label">Bônus</div><div class="sum-val">${vId}% de desconto para identificados</div></div></div>`
   document.getElementById('copiar-link-btn').onclick=()=>{
-    navigator.clipboard?.writeText(location.origin+'?slug='+slug)
+    navigator.clipboard?.writeText(location.origin+'/?slug='+slug)
     showToast('✅ Link copiado!')
   }
 }
@@ -1190,7 +1190,7 @@ async function carregarDashboard(){
     document.getElementById('dash-media-card').style.display='block'
     document.getElementById('dash-media-itens').innerHTML=mi.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span>${m.emoji||'⭐'} ${m.item_nome}</span><b style="color:${(m.nota_media||0)<3?'var(--rd)':'inherit'}">${m.nota_media??'—'}</b></div>`).join('')
   }
-  const link=location.origin+'?slug='+S.negocio.slug
+  const link=location.origin+'/?slug='+S.negocio.slug
   document.getElementById('dash-link-text').textContent=location.host+'?slug='+S.negocio.slug
   try{
     const canvas=document.getElementById('qr-canvas')
@@ -1217,8 +1217,8 @@ async function carregarDashboard(){
     </div>`
   }).join('')
 }
-function copiarLink(){navigator.clipboard?.writeText(location.origin+'?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
-function abrirAvaliar(){window.open(location.origin+'?slug='+S.negocio?.slug,'_blank')}
+function copiarLink(){navigator.clipboard?.writeText(location.origin+'/?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
+function abrirAvaliar(){window.open(location.origin+'/?slug='+S.negocio?.slug,'_blank')}
 
 // ── CLIENTES ──
 async function carregarClientes(busca=''){
@@ -1408,8 +1408,8 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   if(linkId){const{data}=await sb.from('links_avaliacao').select('token').eq('id',linkId).maybeSingle();token=data?.token}
   // Link com nome e tel para pré-preencher tela do cliente
   let link=token
-    ? location.origin+'?slug='+S.negocio.slug+'&a='+token
-    : location.origin+'?slug='+S.negocio.slug
+    ? location.origin+'/?slug='+S.negocio.slug+'&a='+token
+    : location.origin+'/?slug='+S.negocio.slug
   if(nome&&wpp){
     link+='&nome='+encodeURIComponent(nome)+'&tel='+encodeURIComponent(wpp.replace(/\D/g,''))
   }
@@ -1558,7 +1558,7 @@ async function salvarNegocio(){
   showToast('✅ Negócio atualizado!')
 }
 function insVar(id,v){const ta=document.getElementById(id),s=ta.selectionStart,e=ta.selectionEnd;ta.value=ta.value.slice(0,s)+v+ta.value.slice(e);ta.focus();ta.selectionStart=ta.selectionEnd=s+v.length}
-function prevTpl(id){const bc=S.bonusConfig,m={'{nome}':'João Silva','{empresa}':S.negocio?.nome||'Negócio','{link}':location.origin+'?slug='+(S.negocio?.slug||'link'),'{bonus_id}':(bc?.valor_identificado||15)+'%','{bonus_anon}':(bc?.valor_anonimo||5)+'%','{codigo}':'AVA-X7K2-M9','{validade}':'22/07/2026'};let msg=document.getElementById(id).value;Object.entries(m).forEach(([k,v])=>msg=msg.replaceAll(k,v));document.getElementById('preview-content').textContent=msg;openModal('m-preview')}
+function prevTpl(id){const bc=S.bonusConfig,m={'{nome}':'João Silva','{empresa}':S.negocio?.nome||'Negócio','{link}':location.origin+'/?slug='+(S.negocio?.slug||'link'),'{bonus_id}':(bc?.valor_identificado||15)+'%','{bonus_anon}':(bc?.valor_anonimo||5)+'%','{codigo}':'AVA-X7K2-M9','{validade}':'22/07/2026'};let msg=document.getElementById(id).value;Object.entries(m).forEach(([k,v])=>msg=msg.replaceAll(k,v));document.getElementById('preview-content').textContent=msg;openModal('m-preview')}
 
 // ── AVALIAR ──
 async function initAvaliar(slug,token){
