@@ -1323,7 +1323,7 @@ function renderLista(lista,filtro){
   const el=document.getElementById('lista-disparo-items')
   if(!lista.length){
     const msgs={todos:'Lista vazia',pendente:'Nenhum aguardando',enviado:'Nenhum enviado',avaliado:'Nenhum avaliado'}
-    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">'+(msgs[filtro]||'Lista vazia')+'</div>'
+    el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">${msgs[filtro]||'Lista vazia'}</div>`
     return
   }
   el.innerHTML=lista.map(it=>{
@@ -1332,17 +1332,18 @@ function renderLista(lista,filtro){
     const urgente=it.status==='pendente'&&new Date(it.adicionado_em)<new Date(Date.now()-7*24*60*60*1000)
     let badge='',acoes=''
     if(it.status==='pendente'){
-      badge='<span class="badge '+(urgente?'br':'by')+'" style="margin-top:3px">'+(urgente?'⚠️ Há muito tempo':'⏳ Aguardando')+'</span>'
-      acoes='<button class="btn btn-green" style="font-size:11px" onclick="enviarLista(''+it.id+'',''+nome+'',''+wpp+'',''+it.link_id+'')">📲</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista(''+it.id+'')">✕</button>'
+      badge=`<span class="badge ${urgente?'br':'by'}" style="margin-top:3px">${urgente?'⚠️ Há muito tempo':'⏳ Aguardando'}</span>`
+      acoes=`<button class="btn btn-green" style="font-size:11px" onclick="enviarLista('${it.id}','${nome}','${wpp}','${it.link_id||''}')">📲</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
     }else if(it.status==='enviado'){
-      badge='<span class="badge bp" style="margin-top:3px">📤 Enviado'+(it.enviado_em?' '+tempoLista(it.enviado_em)+' atrás':'')+' — aguardando avaliação</span>'
-      acoes='<button class="btn btn-ghost" style="font-size:11px" title="Reenviar" onclick="enviarLista(''+it.id+'',''+nome+'',''+wpp+'',''+it.link_id+'')">🔁</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista(''+it.id+'')">✕</button>'
+      badge=`<span class="badge bp" style="margin-top:3px">📤 Enviado${it.enviado_em?' '+tempoLista(it.enviado_em)+' atrás':''} — aguardando avaliação</span>`
+      acoes=`<button class="btn btn-ghost" style="font-size:11px" title="Reenviar" onclick="enviarLista('${it.id}','${nome}','${wpp}','${it.link_id||''}')">🔁</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
     }else if(it.status==='avaliado'){
-      badge='<span class="badge bg" style="margin-top:3px">⭐ Avaliado</span>'
-      acoes='<button class="btn btn-ghost" style="font-size:11px" onclick="navTo('dashboard')">👁 Ver</button>'
+      badge=`<span class="badge bg" style="margin-top:3px">⭐ Avaliado</span>`
+      acoes=`<button class="btn btn-ghost" style="font-size:11px" onclick="navTo('dashboard')">👁 Ver</button>`
     }
-    return '<div class="list-item"><div class="li-av">'+ini(nome)+'</div><div class="li-info"><div class="li-name">'+nome+'</div><div class="li-phone">'+wpp+'</div><div class="li-time">⏱ Adicionado há <span>'+tempoLista(it.adicionado_em)+'</span></div>'+badge+'</div><div class="li-acts">'+acoes+'</div></div>'
+    return `<div class="list-item"><div class="li-av">${ini(nome)}</div><div class="li-info"><div class="li-name">${nome}</div><div class="li-phone">${wpp}</div><div class="li-time">⏱ Adicionado há <span>${tempoLista(it.adicionado_em)}</span></div>${badge}</div><div class="li-acts">${acoes}</div></div>`
   }).join('')
+
 }
 
 async function buscarParaLista(busca){
