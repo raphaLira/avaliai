@@ -1166,10 +1166,11 @@ async function carregarTemplates(){if(!S.negocio)return;const{data}=await sb.fro
 async function carregarDashboard(){
   if(!S.negocio)return
   const id=S.negocio.id
-  const[{data:res},{data:mi},{data:feeds}]=await Promise.all([
+  const[{data:res},{data:mi},{data:feeds},{count:totalAvals}]=await Promise.all([
     sb.from('vw_dashboard').select('*').eq('negocio_id',id).maybeSingle(),
     sb.from('vw_media_itens').select('*').eq('negocio_id',id),
-    sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(10)
+    sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(3),
+    sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',id)
   ])
   if(res){
     // Calcula nota média direto
@@ -1198,6 +1199,8 @@ async function carregarDashboard(){
   }catch(e){console.log('QR error:',e)}
   const fEl=document.getElementById('dash-feedbacks')
   if(!feeds?.length){fEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma avaliação ainda</div>';return}
+  S._feeds3=feeds
+  S._totalAvals=totalAvals||0
   fEl.innerHTML=feeds.map(av=>{
     const n=Math.round(av.nota_geral||0),bom=n>=4
     const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
@@ -1208,7 +1211,10 @@ async function carregarDashboard(){
     const comentarioGeral=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:var(--text);line-height:1.5;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
     return`<div class="fi">
       <div class="fi-top">
-        <div>${'⭐'.repeat(n)} <span class="badge ${bom?'bg':'br'}">${bom?'Positivo':'Atenção'}</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:15px">${'⭐'.repeat(n)}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span>
+        </div>
         <span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span>
       </div>
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">${nome}</div>
@@ -1216,7 +1222,56 @@ async function carregarDashboard(){
       ${comentarioGeral}
     </div>`
   }).join('')
+
+  // Botão ver todas
+  if((totalAvals||0)>3){
+    fEl.innerHTML+=`<button onclick="verTodasAvaliacoes()" style="width:100%;padding:13px;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:13px;font-weight:700;color:var(--brand);cursor:pointer;margin-top:4px">
+      Ver todas as ${totalAvals} avaliações →
+    </button>`
+  }
 }
+
+async function verTodasAvaliacoes(){
+  setLoading(true)
+  const{data:todas}=await sb.from('avaliacoes')
+    .select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)')
+    .eq('negocio_id',S.negocio.id)
+    .order('criado_em',{ascending:false})
+  setLoading(false)
+  if(!todas?.length)return
+
+  // Abre modal com todas
+  let modalEl=document.getElementById('m-todas-avals')
+  if(!modalEl){
+    modalEl=document.createElement('div')
+    modalEl.id='m-todas-avals'
+    modalEl.className='modal-bg'
+    modalEl.onclick=e=>{if(e.target===modalEl)modalEl.classList.remove('open')}
+    modalEl.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
+      <div class="mhandle"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="mtitle" id="m-todas-title">Todas as avaliações</div>
+        <button onclick="document.getElementById('m-todas-avals').classList.remove('open')" style="background:var(--bg);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+      </div>
+      <div id="m-todas-content"></div>
+    </div>`
+    document.body.appendChild(modalEl)
+  }
+
+  document.getElementById('m-todas-title').textContent=`Todas as ${todas.length} avaliações`
+  document.getElementById('m-todas-content').innerHTML=todas.map(av=>{
+    const n=Math.round(av.nota_geral||0)
+    const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
+    const itens=(av.avaliacao_itens||[]).map(ai=>{
+      const com=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px">"${ai.comentario}"</div>`:''
+      return`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span>${com}</div>`
+    }).join('')
+    const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
+    return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:12px;font-weight:700;margin-bottom:5px">${nome}</div>${itens?`<div>${itens}</div>`:''} ${com}</div>`
+  }).join('')
+  modalEl.classList.add('open')
+}
+
 function copiarLink(){navigator.clipboard?.writeText(location.origin+'/?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
 function abrirAvaliar(){window.open(location.origin+'/?slug='+S.negocio?.slug,'_blank')}
 
