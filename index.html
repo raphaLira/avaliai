@@ -1166,12 +1166,13 @@ async function carregarTemplates(){if(!S.negocio)return;const{data}=await sb.fro
 async function carregarDashboard(){
   if(!S.negocio)return
   const id=S.negocio.id
-  const[{data:res},{data:mi},{data:feeds},{count:totalAvals}]=await Promise.all([
+  const[{data:res},{data:mi},{data:feeds},{data:contagem}]=await Promise.all([
     sb.from('vw_dashboard').select('*').eq('negocio_id',id).maybeSingle(),
     sb.from('vw_media_itens').select('*').eq('negocio_id',id),
     sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(3),
-    sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',id)
+    sb.from('avaliacoes').select('id').eq('negocio_id',id)
   ])
+  const totalAvals=contagem?.length||0
   if(res){
     // Calcula nota média direto
   const{data:notaData}=await sb.from('avaliacoes').select('nota_geral').eq('negocio_id',id).not('nota_geral','is',null)
