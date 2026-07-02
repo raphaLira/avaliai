@@ -600,6 +600,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </div>
       <!-- CONFIG -->
       <div id="page-config" class="hidden">
+        <!-- Abas Config -->
+        <div style="display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px">
+          <button class="btn btn-primary" id="cfg-aba-geral" onclick="cfgAba('geral')" style="font-size:12px;padding:8px 14px;flex-shrink:0">⚙️ Geral</button>
+          <button class="btn btn-ghost" id="cfg-aba-gamificacao" onclick="cfgAba('gamificacao')" style="font-size:12px;padding:8px 14px;flex-shrink:0">🎮 Gamificação</button>
+        </div>
+
+        <!-- ABA GERAL -->
+        <div id="cfg-geral">
         <div class="sec-title">Itens de Avaliação</div>
         <div class="card">
           <div style="font-size:11px;color:var(--muted);margin-bottom:9px">Cliente avalia cada item com estrelas + emoji + comentário.</div>
@@ -997,6 +1005,309 @@ function toggleMinAvals(){
   const f=document.getElementById('cfg-min-avals-field')
   if(f)f.style.display=t.classList.contains('on')?'block':'none'
 }
+// ══════════ GAMIFICAÇÃO ══════════
+
+// State gamificação
+let GC = null // gamificacao_config
+
+function cfgAba(aba){
+  document.getElementById('cfg-geral').style.display = aba==='geral'?'block':'none'
+  document.getElementById('cfg-gamificacao').style.display = aba==='gamificacao'?'block':'none'
+  document.getElementById('cfg-aba-geral').className = aba==='geral'?'btn btn-primary':'btn btn-ghost'
+  document.getElementById('cfg-aba-gamificacao').className = aba==='gamificacao'?'btn btn-primary':'btn btn-ghost'
+  if(aba==='gamificacao') carregarGamificacao()
+}
+
+async function carregarGamificacao(){
+  if(!S.negocio) return
+  const{data}=await sb.from('gamificacao_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle()
+  if(data){
+    GC=data
+    // Níveis
+    if(data.niveis_ativo){
+      document.getElementById('toggle-niveis').classList.add('on')
+      document.getElementById('niveis-fields').style.display='block'
+    }
+    renderNiveisCfg(data.niveis_config)
+    // Surpresa
+    if(data.surpresa_ativo) document.getElementById('toggle-surpresa').classList.add('on')
+    document.getElementById('surpresa-a-cada').value=data.surpresa_a_cada||5
+    document.getElementById('surpresa-desconto').value=data.surpresa_desconto||30
+    atualizarSurpresaPreview()
+    // Cartão
+    if(data.cartao_ativo) document.getElementById('toggle-cartao').classList.add('on')
+    document.getElementById('cartao-total').value=data.cartao_total_selos||10
+    document.getElementById('cartao-premio').value=data.cartao_premio||''
+    renderCartaoPreview(data.cartao_total_selos||10)
+    // Streak
+    if(data.streak_ativo) document.getElementById('toggle-streak').classList.add('on')
+    document.getElementById('streak-intervalo').value=data.streak_intervalo_dias||30
+    if(data.streak_metas){
+      document.getElementById('streak-meta1').value=data.streak_metas[0]?.valor||5
+      document.getElementById('streak-meta2').value=data.streak_metas[1]?.valor||2
+      document.getElementById('streak-meta3').value=data.streak_metas[2]?.valor||'Grátis'
+    }
+  } else {
+    renderNiveisCfg(null)
+    renderCartaoPreview(10)
+  }
+}
+
+function toggleNiveisFields(){
+  const on=document.getElementById('toggle-niveis').classList.contains('on')
+  document.getElementById('niveis-fields').style.display=on?'block':'none'
+}
+
+const NIVEIS_DEFAULT=[
+  {icon:'⭐',nome:'Novo Visitante',min_avals:1,desconto:5},
+  {icon:'🥉',nome:'Bronze',min_avals:3,desconto:10},
+  {icon:'🥈',nome:'Prata',min_avals:7,desconto:15},
+  {icon:'🥇',nome:'Ouro',min_avals:15,desconto:20},
+  {icon:'💎',nome:'VIP Diamante',min_avals:30,desconto:30}
+]
+
+function renderNiveisCfg(config){
+  const niveis=config||NIVEIS_DEFAULT
+  const el=document.getElementById('niveis-lista-cfg')
+  if(!el) return
+  el.innerHTML=niveis.map((n,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.08)">
+      <div style="font-size:22px;flex-shrink:0;width:28px;text-align:center">${n.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:5px">${n.nome}</div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:700;color:#78350F;text-transform:uppercase;margin-bottom:3px">A partir de</div>
+            <input type="number" id="nivel-min-${i}" value="${n.min_avals}" ${i===0?'disabled':''} style="width:100%;border:1.5px solid #F59E0B;border-radius:7px;padding:6px 9px;font-family:inherit;font-size:13px;background:${i===0?'rgba(0,0,0,.05)':'#fff'}"/>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:700;color:#78350F;text-transform:uppercase;margin-bottom:3px">Desconto %</div>
+            <input type="number" id="nivel-desc-${i}" value="${n.desconto}" style="width:100%;border:1.5px solid #F59E0B;border-radius:7px;padding:6px 9px;font-family:inherit;font-size:13px;background:#fff"/>
+          </div>
+        </div>
+      </div>
+    </div>`).join('')
+}
+
+function atualizarSurpresaPreview(){
+  const n=document.getElementById('surpresa-a-cada')?.value||5
+  const v=document.getElementById('surpresa-desconto')?.value||30
+  const num=document.getElementById('surpresa-preview-num')
+  const val=document.getElementById('surpresa-preview-val')
+  if(num) num.textContent=n+'ª'
+  if(val) val.textContent=v+'%'
+}
+
+document.addEventListener('input', e=>{
+  if(e.target.id==='surpresa-a-cada'||e.target.id==='surpresa-desconto') atualizarSurpresaPreview()
+  if(e.target.id==='cartao-total') renderCartaoPreview(+e.target.value||10)
+})
+
+function renderCartaoPreview(total){
+  const el=document.getElementById('cartao-preview-selos')
+  if(!el) return
+  el.innerHTML=Array.from({length:total},(_, i)=>{
+    const done=i<3, premio=i===total-1
+    return`<div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;
+      ${done?'background:linear-gradient(135deg,var(--brand),#A78BFA);color:#fff;':
+       premio?'border:2px solid var(--amber);color:var(--amber);':'border:1.5px solid var(--border);color:var(--muted);'}">
+      ${done?'✓':premio?'🎁':''}
+    </div>`
+  }).join('')
+}
+
+async function salvarNiveis(){
+  if(!S.negocio) return
+  setLoading(true)
+  const niveis=NIVEIS_DEFAULT.map((n,i)=>({
+    ...n,
+    min_avals:+document.getElementById(`nivel-min-${i}`)?.value||n.min_avals,
+    desconto:+document.getElementById(`nivel-desc-${i}`)?.value||n.desconto
+  }))
+  const{error}=await sb.from('gamificacao_config').upsert({
+    negocio_id:S.negocio.id,
+    niveis_ativo:document.getElementById('toggle-niveis').classList.contains('on'),
+    niveis_config:niveis
+  },{onConflict:'negocio_id'})
+  setLoading(false)
+  if(error) return showToast('❌ '+error.message)
+  showToast('✅ Níveis salvos!')
+}
+
+async function salvarSurpresa(){
+  if(!S.negocio) return
+  setLoading(true)
+  const{error}=await sb.from('gamificacao_config').upsert({
+    negocio_id:S.negocio.id,
+    surpresa_ativo:document.getElementById('toggle-surpresa').classList.contains('on'),
+    surpresa_a_cada:+document.getElementById('surpresa-a-cada').value||5,
+    surpresa_desconto:+document.getElementById('surpresa-desconto').value||30
+  },{onConflict:'negocio_id'})
+  setLoading(false)
+  if(error) return showToast('❌ '+error.message)
+  showToast('✅ Bônus surpresa salvo!')
+}
+
+async function salvarCartao(){
+  if(!S.negocio) return
+  setLoading(true)
+  const{error}=await sb.from('gamificacao_config').upsert({
+    negocio_id:S.negocio.id,
+    cartao_ativo:document.getElementById('toggle-cartao').classList.contains('on'),
+    cartao_total_selos:+document.getElementById('cartao-total').value||10,
+    cartao_premio:document.getElementById('cartao-premio').value||''
+  },{onConflict:'negocio_id'})
+  setLoading(false)
+  if(error) return showToast('❌ '+error.message)
+  showToast('✅ Cartão de fidelidade salvo!')
+}
+
+async function salvarStreak(){
+  if(!S.negocio) return
+  setLoading(true)
+  const{error}=await sb.from('gamificacao_config').upsert({
+    negocio_id:S.negocio.id,
+    streak_ativo:document.getElementById('toggle-streak').classList.contains('on'),
+    streak_intervalo_dias:+document.getElementById('streak-intervalo').value||30,
+    streak_metas:[
+      {visitas:3,tipo:'percentual_extra',valor:+document.getElementById('streak-meta1').value||5},
+      {visitas:5,tipo:'multiplicador',valor:+document.getElementById('streak-meta2').value||2},
+      {visitas:10,tipo:'gratis',valor:document.getElementById('streak-meta3').value||'Grátis'}
+    ]
+  },{onConflict:'negocio_id'})
+  setLoading(false)
+  if(error) return showToast('❌ '+error.message)
+  showToast('✅ Streak salvo!')
+}
+
+// ══ GAMIFICAÇÃO NA TELA DO CLIENTE ══
+async function carregarGamificacaoCliente(negocioId, clienteId){
+  const[{data:gc},{data:prog}]=await Promise.all([
+    sb.from('gamificacao_config').select('*').eq('negocio_id',negocioId).maybeSingle(),
+    clienteId ? sb.from('gamificacao_cliente').select('*').eq('negocio_id',negocioId).eq('cliente_id',clienteId).maybeSingle() : Promise.resolve({data:null})
+  ])
+  return{gc,prog}
+}
+
+async function atualizarProgressoCliente(negocioId, clienteId, gc){
+  if(!clienteId||!gc) return
+
+  // Busca total de avaliações
+  const{data:avals}=await sb.from('avaliacoes').select('id,criado_em').eq('negocio_id',negocioId).eq('cliente_id',clienteId).order('criado_em')
+  const total=avals?.length||0
+
+  // Calcula nível
+  let nivelAtual=NIVEIS_DEFAULT[0]
+  if(gc.niveis_ativo&&gc.niveis_config){
+    const niveis=[...gc.niveis_config].sort((a,b)=>b.min_avals-a.min_avals)
+    nivelAtual=niveis.find(n=>total>=n.min_avals)||gc.niveis_config[0]
+  }
+
+  // Calcula streak
+  let streak=0
+  if(gc.streak_ativo&&avals?.length>1){
+    const intervalo=gc.streak_intervalo_dias||30
+    for(let i=avals.length-1;i>0;i--){
+      const diff=(new Date(avals[i].criado_em)-new Date(avals[i-1].criado_em))/(1000*60*60*24)
+      if(diff<=intervalo) streak++
+      else break
+    }
+    streak++
+  }
+
+  // Selos do cartão
+  const selos=gc.cartao_ativo ? (total % (gc.cartao_total_selos||10)) : 0
+  const cartoes=gc.cartao_ativo ? Math.floor(total/(gc.cartao_total_selos||10)) : 0
+
+  // Upsert progresso
+  await sb.from('gamificacao_cliente').upsert({
+    negocio_id:negocioId,
+    cliente_id:clienteId,
+    total_avaliacoes:total,
+    nivel_atual:nivelAtual?.nome||'Novo Visitante',
+    nivel_icon:nivelAtual?.icon||'⭐',
+    desconto_nivel:nivelAtual?.desconto||5,
+    selos_atual:selos,
+    cartoes_completos:cartoes,
+    streak_atual:streak,
+    ultima_avaliacao_em:new Date().toISOString()
+  },{onConflict:'negocio_id,cliente_id'})
+
+  return{nivelAtual,streak,selos,total}
+}
+
+// Mostra gamificação na tela do cliente
+function mostrarGamificacaoCliente(gc, prog, totalAvals){
+  if(!gc) return
+  const container=document.getElementById('av-itens-list')
+  if(!container) return
+
+  let cards=''
+
+  // Nível
+  if(gc.niveis_ativo&&prog){
+    const niveis=gc.niveis_config||NIVEIS_DEFAULT
+    const niveisOrdenados=[...niveis].sort((a,b)=>a.min_avals-b.min_avals)
+    const proximo=niveisOrdenados.find(n=>n.min_avals>totalAvals)
+    const atual=niveisOrdenados.filter(n=>n.min_avals<=totalAvals).pop()||niveisOrdenados[0]
+    const faltam=proximo?proximo.min_avals-totalAvals:0
+    const pct=proximo?Math.round(((totalAvals-atual.min_avals)/(proximo.min_avals-atual.min_avals))*100):100
+
+    cards+=`<div style="background:linear-gradient(135deg,#1a0533,#2d0d5e);border-radius:14px;padding:16px 18px;margin-bottom:12px;color:#fff">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-size:28px">${atual.icon}</div>
+        <div>
+          <div style="font-size:14px;font-weight:800">${atual.nome}</div>
+          <div style="font-size:11px;opacity:.6">${totalAvals} avaliações · ${atual.desconto}% de desconto</div>
+        </div>
+        <div style="margin-left:auto;background:rgba(245,166,35,.2);border-radius:8px;padding:5px 10px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:var(--amber)">${atual.desconto}%</div>
+          <div style="font-size:9px;opacity:.7">OFF</div>
+        </div>
+      </div>
+      ${proximo?`<div style="background:rgba(255,255,255,.08);border-radius:99px;height:8px;overflow:hidden;margin-bottom:5px">
+        <div style="background:linear-gradient(90deg,var(--amber),#F97316);height:100%;width:${pct}%;border-radius:99px"></div>
+      </div>
+      <div style="font-size:11px;opacity:.6">Faltam ${faltam} avaliações para ${proximo.icon} ${proximo.nome}</div>`:'<div style="font-size:12px;color:var(--amber);font-weight:700">🏆 Você atingiu o nível máximo!</div>'}
+    </div>`
+  }
+
+  // Streak
+  if(gc.streak_ativo&&prog&&prog.streak_atual>0){
+    cards+=`<div style="background:linear-gradient(135deg,#1a0a00,#3d1500);border-radius:14px;padding:14px 18px;margin-bottom:12px;color:#fff;display:flex;align-items:center;gap:12px">
+      <div style="font-size:32px">${prog.streak_atual>=5?'🔥🔥':'🔥'}</div>
+      <div>
+        <div style="font-size:16px;font-weight:900;color:var(--amber)">${prog.streak_atual} visitas seguidas!</div>
+        <div style="font-size:11px;opacity:.6">Continue vindo para manter sua sequência 💪</div>
+      </div>
+    </div>`
+  }
+
+  // Cartão
+  if(gc.cartao_ativo&&prog){
+    const total=gc.cartao_total_selos||10
+    const selos=prog.selos_atual||0
+    const selosHtml=Array.from({length:total},(_,i)=>`
+      <div style="width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;
+        ${i<selos?'background:linear-gradient(135deg,var(--brand),#A78BFA);color:#fff;':
+         i===total-1?'border:1.5px solid var(--amber);color:var(--amber);':'border:1.5px solid rgba(255,255,255,.15);color:rgba(255,255,255,.3);'}">
+        ${i<selos?'✓':i===total-1?'🎁':''}
+      </div>`).join('')
+
+    cards+=`<div style="background:linear-gradient(135deg,#1a1025,#2d1a4a);border-radius:14px;padding:14px 18px;margin-bottom:12px;color:#fff">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px">🃏 Cartão de Fidelidade</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${selosHtml}</div>
+      <div style="font-size:11px;opacity:.6">${selos} de ${total} selos · Prêmio: ${gc.cartao_premio||'especial'}</div>
+    </div>`
+  }
+
+  if(cards){
+    const wrapper=document.createElement('div')
+    wrapper.innerHTML=cards
+    container.prepend(wrapper)
+  }
+}
+
 async function fazerLogout(){await sb.auth.signOut();S={user:null,negocio:null,bonusConfig:null,itens:[],templates:{},ramo:'lava_jato',onbItens:[],step:1,codigoAtual:null};showScreen('screen-login')}
 function switchLoginTab(t){
   document.querySelectorAll('.login-tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='entrar')||(i===1&&t==='cadastro')))
@@ -1638,6 +1949,9 @@ async function initAvaliar(slug,token){
     // Preenche hero
     document.getElementById('av-nome').textContent=neg.nome
     document.getElementById('av-tipo').textContent=neg.cidade||''
+    // Carrega config de gamificação
+    const{data:gcData}=await sb.from('gamificacao_config').select('*').eq('negocio_id',neg.id).maybeSingle()
+    avS.gc=gcData
 
     // Configura bônus
     if(bc){
@@ -1661,6 +1975,16 @@ async function initAvaliar(slug,token){
         </div>`).join('')
     }
 
+    // Mostra gamificação se tiver dados do cliente via URL
+    const urlP=new URLSearchParams(location.search)
+    const telUrl=urlP.get('tel')
+    if(avS.gc&&telUrl){
+      const{data:cliGam}=await sb.from('clientes').select('id').eq('negocio_id',neg.id).eq('whatsapp',telUrl.replace(/\D/g,'')).maybeSingle()
+      if(cliGam){
+        const{data:progGam}=await sb.from('gamificacao_cliente').select('*').eq('negocio_id',neg.id).eq('cliente_id',cliGam.id).maybeSingle()
+        if(progGam) mostrarGamificacaoCliente(avS.gc,progGam,progGam.total_avaliacoes||0)
+      }
+    }
     // Verifica link e progresso DEPOIS de renderizar
     if(token){
       const{data:linkData}=await sb.from('links_avaliacao').select('usado,cliente_id').eq('token',token).maybeSingle()
@@ -1752,11 +2076,37 @@ async function enviarAvaliacao(){
     let linkId=null
     if(avS.token){const{data}=await sb.from('links_avaliacao').select('id').eq('token',avS.token).maybeSingle();linkId=data?.id}
     const{data:av}=await sb.from('avaliacoes').insert({negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:nomeId||null,avaliador_whatsapp:telId||null}).select().single()
-    // Marca como avaliado na lista
+    // Atualiza progresso de gamificação
+    if(cId&&avS.gc) await atualizarProgressoCliente(avS.negocio.id,cId,avS.gc)
+
+    // Verifica surpresa
+    if(cId&&avS.gc?.surpresa_ativo){
+      const{data:prog}=await sb.from('gamificacao_cliente').select('total_avaliacoes').eq('negocio_id',avS.negocio.id).eq('cliente_id',cId).maybeSingle()
+      const total=prog?.total_avaliacoes||0
+      const aCada=avS.gc.surpresa_a_cada||5
+      if(total>0&&total%aCada===0){
+        // É uma avaliação surpresa! Gera código com valor maior
+        const{data:codSurp}=await sb.rpc('gerar_codigo_bonus',{prefixo:avS.bc?.prefixo_codigo||'AVA'})
+        const expSurp=new Date();expSurp.setDate(expSurp.getDate()+(avS.bc?.validade_dias||30))
+        await sb.from('codigos_bonus').insert({
+          negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
+          codigo:codSurp,tipo:'percentual',valor:avS.gc.surpresa_desconto,
+          identificado:true,expira_em:expSurp.toISOString(),
+          descricao:'🎰 Bônus Surpresa: '+avS.gc.surpresa_desconto+'% de desconto!'
+        })
+      }
+    }
+
+    // Marca como avaliado na lista — tenta por link_id primeiro, depois por cliente_id
     if(linkId){
       await sb.from('lista_disparo').update({status:'avaliado'}).eq('link_id',linkId)
-    } else if(cId){
-      await sb.from('lista_disparo').update({status:'avaliado'}).eq('cliente_id',cId).eq('negocio_id',avS.negocio.id).eq('status','enviado')
+    }
+    if(cId){
+      // Marca todos os registros pendentes/enviados deste cliente como avaliado
+      await sb.from('lista_disparo').update({status:'avaliado'})
+        .eq('cliente_id',cId)
+        .eq('negocio_id',avS.negocio.id)
+        .in('status',['pendente','enviado'])
     }
     await sb.from('avaliacao_itens').insert(itensDados.filter(i=>i.nota>0).map(i=>({...i,avaliacao_id:av.id})))
     let codigoGerado=null
@@ -1768,9 +2118,12 @@ async function enviarAvaliacao(){
 
       // Conta avaliações anteriores deste cliente/negócio
       let totalAvals=1
-      if(minAvals>1&&cId){
-        const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',avS.negocio.id).eq('cliente_id',cId)
-        totalAvals=count||1
+      if(minAvals>1){
+        let q=sb.from('avaliacoes').select('id').eq('negocio_id',avS.negocio.id)
+        if(cId) q=q.eq('cliente_id',cId)
+        else if(telId) q=q.eq('avaliador_whatsapp',telId)
+        const{data:avsAnt}=await q
+        totalAvals=(avsAnt?.length||0)+1 // +1 inclui a atual
       }
 
       if(totalAvals>=minAvals){
@@ -1817,6 +2170,8 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
   
   hero.style.background=identificado?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,var(--brand),#A78BFA)'
   hero.innerHTML=`<div class="suc-icon">🎉</div><div class="suc-title">${identificado?'Obrigado, '+nome+'!':'Obrigado!'}</div><div class="suc-sub">${identificado?'Seu código chegou no WhatsApp!':'Salve seu código agora.'}</div>`
+  // Esconde seção de código se não gerou
+  const codigoSection=document.querySelector('.suc-wrap .card:first-child')
   if(codigo){
     document.getElementById('suc-bonus-desc').textContent='🎁 '+codigo.descricao
     document.getElementById('suc-codigo').textContent=codigo.codigo
@@ -1827,7 +2182,10 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
       const msg=montarMsg(tpl,{nome,empresa:avS.negocio.nome,codigo:codigo.codigo,bonus_id:codigo.descricao,validade:new Date(codigo.expira_em).toLocaleDateString('pt-BR')})
       const btn=document.getElementById('suc-wpp-btn');btn.style.display='flex';btn.onclick=()=>window.open(linkWpp(tel,msg),'_blank')
     }
-  }else{document.querySelector('.suc-wrap').innerHTML='<div style="text-align:center;padding:20px;font-size:14px;color:var(--muted)">Avaliação enviada! Obrigado 😊</div>'}
+  } else {
+    // Sem código — esconde seção de código, mostra só mensagem de progresso ou agradecimento
+    if(codigoSection) codigoSection.style.display='none'
+  }
 }
 function copiarCodigo(){const c=document.getElementById('suc-codigo').textContent;navigator.clipboard?.writeText(c);showToast('✅ Código copiado!')}
 
