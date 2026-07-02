@@ -339,6 +339,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="dark-field"><label>E-mail</label><input class="dark-input" type="email" id="login-email" placeholder="seu@email.com"/></div>
       <div class="dark-field"><label>Senha</label><input class="dark-input" type="password" id="login-senha" placeholder="••••••••"/></div>
       <button class="login-submit" onclick="loginEmail()">Entrar →</button>
+      <div style="text-align:center;margin-top:10px"><a onclick="esqueciSenha()" style="font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;text-decoration:underline">Esqueci minha senha</a></div>
       <div class="login-footer">Não tem conta? <a onclick="switchLoginTab('cadastro')">Criar grátis</a></div>
     </div>
     <div id="cadastro-view" class="hidden">
@@ -353,6 +354,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <button class="login-submit" onclick="cadastrarEmail()">Criar conta grátis →</button>
       <div class="login-footer">Já tem conta? <a onclick="switchLoginTab('entrar')">Entrar</a></div>
     </div>
+  </div>
+  <div style="text-align:center;margin-top:18px;font-size:11px;color:rgba(255,255,255,.35)">
+    <a href="/termos.html" style="color:inherit">Termos de Uso</a> · <a href="/privacidade.html" style="color:inherit">Política de Privacidade</a>
   </div>
 </div>
 
@@ -476,6 +480,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <div style="font-size:12px;opacity:.8;margin-bottom:2px">👋 Bem-vindo de volta,</div>
           <div style="font-size:20px;font-weight:800" id="user-bar-name">—</div>
           <div style="font-size:11px;opacity:.7;margin-top:2px" id="user-bar-email">—</div>
+          <div style="margin-top:8px"><span id="user-plano-badge" style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 11px;font-size:10px;font-weight:800;letter-spacing:.05em">PLANO BÁSICO</span></div>
         </div>
         <div class="dash-header">
           <div class="dash-biz-logo">🏪</div>
@@ -491,6 +496,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <div class="kpi"><div class="kv" id="kpi-bonus-r" style="color:var(--gd)">—</div><div class="kl">Resgatados</div></div>
           <div class="kpi"><div class="kv" id="kpi-id" style="color:var(--brand)">—</div><div class="kl">Identificados</div></div>
         </div>
+        <div id="dash-nivel-negocio" style="display:none"></div>
+        <div id="dash-tendencia" style="display:none"></div>
+        <div id="dash-atencao" style="display:none"></div>
+        <div id="dash-destaques" style="display:none"></div>
+        <div id="dash-dica" style="display:none"></div>
         <div class="card" id="dash-media-card" style="display:none">
           <div class="sec-title">Média por item</div>
           <div id="dash-media-itens"></div>
@@ -914,6 +924,11 @@ async function initApp(){
   const token=params.get('a')
   if(slug){await initAvaliar(slug,token);return}
 
+  // Link de recuperação de senha
+  if(location.hash&&location.hash.includes('type=recovery')){
+    const{data}=await sb.auth.getSession()
+    if(data?.session){S.user=data.session.user;mostrarNovaSenha();return}
+  }
   // Captura token do Google OAuth no hash da URL
   if(location.hash&&location.hash.includes('access_token')){
     const{data,error}=await sb.auth.getSession()
@@ -951,7 +966,8 @@ async function carregarNegocio(){
   }
 
   // Verifica aprovação
-  const{data:pCheck}=await sb.from('perfis').select('aprovado').eq('id',S.user.id).maybeSingle()
+  const{data:pCheck}=await sb.from('perfis').select('aprovado,plano').eq('id',S.user.id).maybeSingle()
+  S.plano=pCheck?.plano||'basico'
   if(pCheck&&pCheck.aprovado===false){
     showScreen('screen-aguardando')
     setLoading(false)
@@ -974,6 +990,43 @@ async function carregarNegocio(){
 }
 
 async function loginGoogle(){const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://a-591870.netlify.app'}});if(error)showToast('❌ Erro Google')}
+async function esqueciSenha(){
+  const email=document.getElementById('login-email').value.trim()
+  if(!email)return showToast('Digite seu e-mail no campo acima primeiro')
+  setLoading(true)
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  showToast('📧 Link de recuperação enviado! Verifique seu e-mail')
+}
+
+function mostrarNovaSenha(){
+  const overlay=document.createElement('div')
+  overlay.id='recovery-overlay'
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px'
+  overlay.innerHTML=`<div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:340px">
+    <div style="font-size:32px;text-align:center;margin-bottom:10px">🔑</div>
+    <div style="font-size:18px;font-weight:800;text-align:center;margin-bottom:6px">Definir nova senha</div>
+    <div style="font-size:13px;color:#7B6F8C;text-align:center;margin-bottom:18px">Digite a nova senha da sua conta</div>
+    <input type="password" id="nova-senha-input" placeholder="Nova senha (mín. 8 caracteres)" style="width:100%;border:1.5px solid #E8E3F4;border-radius:10px;padding:12px 14px;font-family:inherit;font-size:14px;outline:none;margin-bottom:12px"/>
+    <button onclick="salvarNovaSenha()" style="width:100%;padding:13px;background:#6C3BF5;color:#fff;border:none;border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">Salvar nova senha</button>
+  </div>`
+  document.body.appendChild(overlay)
+}
+
+async function salvarNovaSenha(){
+  const senha=document.getElementById('nova-senha-input').value
+  if(!senha||senha.length<8)return showToast('A senha precisa ter no mínimo 8 caracteres')
+  setLoading(true)
+  const{error}=await sb.auth.updateUser({password:senha})
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  document.getElementById('recovery-overlay')?.remove()
+  history.replaceState(null,'',location.pathname+location.search)
+  showToast('✅ Senha alterada com sucesso!')
+  await carregarNegocio()
+}
+
 async function loginEmail(){
   const e=document.getElementById('login-email').value,s=document.getElementById('login-senha').value
   if(!e||!s)return showToast('Preencha e-mail e senha')
@@ -1190,50 +1243,9 @@ async function carregarGamificacaoCliente(negocioId, clienteId){
 }
 
 async function atualizarProgressoCliente(negocioId, clienteId, gc){
-  if(!clienteId||!gc) return
-
-  // Busca total de avaliações
-  const{data:avals}=await sb.from('avaliacoes').select('id,criado_em').eq('negocio_id',negocioId).eq('cliente_id',clienteId).order('criado_em')
-  const total=avals?.length||0
-
-  // Calcula nível
-  let nivelAtual=NIVEIS_DEFAULT[0]
-  if(gc.niveis_ativo&&gc.niveis_config){
-    const niveis=[...gc.niveis_config].sort((a,b)=>b.min_avals-a.min_avals)
-    nivelAtual=niveis.find(n=>total>=n.min_avals)||gc.niveis_config[0]
-  }
-
-  // Calcula streak
-  let streak=0
-  if(gc.streak_ativo&&avals?.length>1){
-    const intervalo=gc.streak_intervalo_dias||30
-    for(let i=avals.length-1;i>0;i--){
-      const diff=(new Date(avals[i].criado_em)-new Date(avals[i-1].criado_em))/(1000*60*60*24)
-      if(diff<=intervalo) streak++
-      else break
-    }
-    streak++
-  }
-
-  // Selos do cartão
-  const selos=gc.cartao_ativo ? (total % (gc.cartao_total_selos||10)) : 0
-  const cartoes=gc.cartao_ativo ? Math.floor(total/(gc.cartao_total_selos||10)) : 0
-
-  // Upsert progresso
-  await sb.from('gamificacao_cliente').upsert({
-    negocio_id:negocioId,
-    cliente_id:clienteId,
-    total_avaliacoes:total,
-    nivel_atual:nivelAtual?.nome||'Novo Visitante',
-    nivel_icon:nivelAtual?.icon||'⭐',
-    desconto_nivel:nivelAtual?.desconto||5,
-    selos_atual:selos,
-    cartoes_completos:cartoes,
-    streak_atual:streak,
-    ultima_avaliacao_em:new Date().toISOString()
-  },{onConflict:'negocio_id,cliente_id'})
-
-  return{nivelAtual,streak,selos,total}
+  if(!clienteId) return
+  const{data}=await sb.rpc('atualizar_progresso_gamificacao',{p_negocio_id:negocioId,p_cliente_id:clienteId})
+  return data
 }
 
 // Mostra gamificação na tela do cliente
@@ -1481,7 +1493,7 @@ async function carregarDashboard(){
     sb.from('vw_dashboard').select('*').eq('negocio_id',id).maybeSingle(),
     sb.from('vw_media_itens').select('*').eq('negocio_id',id),
     sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(3),
-    sb.from('avaliacoes').select('id').eq('negocio_id',id)
+    sb.from('avaliacoes').select('id,cliente_id,nota_geral,criado_em').eq('negocio_id',id)
   ])
   const totalAvals=contagem?.length||0
   if(res){
@@ -1509,6 +1521,12 @@ async function carregarDashboard(){
     const canvas=document.getElementById('qr-canvas')
     QRCode.toCanvas(canvas,link,{width:64,margin:1,color:{dark:'#6C3BF5',light:'#ffffff'}})
   }catch(e){console.log('QR error:',e)}
+  // Badge de plano
+  const planoBadge=document.getElementById('user-plano-badge')
+  if(planoBadge)planoBadge.textContent='PLANO '+(S.plano||'basico').toUpperCase()
+
+  renderInsights(contagem,mi)
+
   const fEl=document.getElementById('dash-feedbacks')
   if(!feeds?.length){fEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma avaliação ainda</div>';return}
   S._feeds3=feeds
@@ -1582,6 +1600,95 @@ async function verTodasAvaliacoes(){
     return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:12px;font-weight:700;margin-bottom:5px">${nome}</div>${itens?`<div>${itens}</div>`:''} ${com}</div>`
   }).join('')
   modalEl.classList.add('open')
+}
+
+function renderInsights(avals, mi){
+  const total=avals?.length||0
+  const notas=(avals||[]).filter(a=>a.nota_geral!=null)
+  const media=notas.length?notas.reduce((s,a)=>s+ +a.nota_geral,0)/notas.length:0
+
+  // ── Nível do negócio ──
+  let niv={icon:'🥉',nome:'Negócio Bronze',prox:'Chegue a 20+ avaliações com média 4.0 para virar Prata'}
+  if(total>100&&media>=4.8)niv={icon:'💎',nome:'Negócio Diamante',prox:'Você está no nível máximo! 🏆'}
+  else if(total>50&&media>=4.5)niv={icon:'🥇',nome:'Negócio Ouro',prox:'100+ avaliações com média 4.8 para Diamante'}
+  else if(total>20&&media>=4)niv={icon:'🥈',nome:'Negócio Prata',prox:'50+ avaliações com média 4.5 para Ouro'}
+  const nEl=document.getElementById('dash-nivel-negocio')
+  if(nEl&&total>0){
+    nEl.style.display='block'
+    nEl.innerHTML=`<div style="background:linear-gradient(135deg,#1a0533,#2d0d5e);border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;color:#fff;display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">${niv.icon}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:800">${niv.nome}</div><div style="font-size:11px;opacity:.6;margin-top:2px">${niv.prox}</div></div>
+    </div>`
+  }
+
+  // ── Tendência 7 dias ──
+  const agora=Date.now(),d7=agora-7*864e5,d14=agora-14*864e5
+  const ult7=notas.filter(a=>new Date(a.criado_em).getTime()>=d7)
+  const ant7=notas.filter(a=>{const t=new Date(a.criado_em).getTime();return t>=d14&&t<d7})
+  const tEl=document.getElementById('dash-tendencia')
+  if(tEl&&ult7.length){
+    const m7=ult7.reduce((s,a)=>s+ +a.nota_geral,0)/ult7.length
+    let comp=''
+    if(ant7.length){
+      const mAnt=ant7.reduce((s,a)=>s+ +a.nota_geral,0)/ant7.length
+      const diff=m7-mAnt
+      comp=diff>=0.05?`<span style="color:var(--green);font-weight:800">↑ +${diff.toFixed(1)}</span> vs semana anterior`
+        :diff<=-0.05?`<span style="color:var(--rd);font-weight:800">↓ ${diff.toFixed(1)}</span> vs semana anterior`
+        :'<span style="color:var(--muted)">estável</span> vs semana anterior'
+    }
+    tEl.style.display='block'
+    tEl.innerHTML=`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 18px">
+      <div style="font-size:24px">📈</div>
+      <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--muted)">ÚLTIMOS 7 DIAS</div>
+      <div style="font-size:14px;margin-top:2px"><b>${m7.toFixed(1)}★</b> em ${ult7.length} avaliação${ult7.length>1?'ões':''} ${comp?'· '+comp:''}</div></div>
+    </div>`
+  }
+
+  // ── Pontos de atenção ──
+  const piores=(mi||[]).filter(m=>m.nota_media!=null&&+m.nota_media<4).sort((a,b)=>+a.nota_media-+b.nota_media)
+  const aEl=document.getElementById('dash-atencao')
+  if(aEl&&piores.length){
+    aEl.style.display='block'
+    aEl.innerHTML=`<div class="card" style="border-left:4px solid var(--rd);padding:14px 18px">
+      <div style="font-size:12px;font-weight:800;color:var(--rd);margin-bottom:8px">⚠️ PONTOS DE ATENÇÃO</div>
+      ${piores.slice(0,3).map(p=>`<div style="font-size:13px;padding:3px 0">• <b>${p.emoji||''} ${p.item_nome}</b> está com nota <b style="color:var(--rd)">${(+p.nota_media).toFixed(1)}</b> — abaixo de 4.0</div>`).join('')}
+    </div>`
+  } else if(aEl){aEl.style.display='none'}
+
+  // ── Destaques ──
+  const melhores=(mi||[]).filter(m=>m.nota_media!=null).sort((a,b)=>+b.nota_media-+a.nota_media)
+  const freq={};(avals||[]).forEach(a=>{if(a.cliente_id)freq[a.cliente_id]=(freq[a.cliente_id]||0)+1})
+  const topVisitas=Object.values(freq).length?Math.max(...Object.values(freq)):0
+  const dEl=document.getElementById('dash-destaques')
+  if(dEl&&(melhores.length||topVisitas>1)){
+    dEl.style.display='block'
+    dEl.innerHTML=`<div class="card" style="border-left:4px solid var(--green);padding:14px 18px">
+      <div style="font-size:12px;font-weight:800;color:var(--gd);margin-bottom:8px">🏆 DESTAQUES</div>
+      ${melhores[0]?`<div style="font-size:13px;padding:3px 0">• Melhor item: <b>${melhores[0].emoji||''} ${melhores[0].item_nome}</b> com <b style="color:var(--gd)">${(+melhores[0].nota_media).toFixed(1)}★</b></div>`:''}
+      ${topVisitas>1?`<div style="font-size:13px;padding:3px 0">• Cliente mais fiel avaliou <b>${topVisitas}x</b> 💜</div>`:''}
+    </div>`
+  }
+
+  // ── Dica do dia ──
+  const dicas=[
+    '💡 Responda rápido às avaliações negativas — clientes que recebem retorno voltam 2x mais.',
+    '💡 Dispare o link logo após o serviço, enquanto a experiência está fresca na memória.',
+    '💡 Coloque o QR Code impresso no balcão — avaliações espontâneas aumentam sua base.',
+    '💡 Ative a gamificação em Config → 🎮 para transformar clientes em clientes fiéis.',
+    '💡 Analise o pior item da semana e crie uma ação prática para melhorá-lo.',
+    '💡 Clientes identificados valem mais: você pode chamá-los de volta com ofertas.',
+    '💡 Use a lista de disparo toda semana — constância gera mais avaliações que campanhas.'
+  ]
+  let dica=dicas[new Date().getDay()]
+  if(piores.length)dica=`💡 <b>${piores[0].item_nome}</b> está puxando sua nota para baixo. Que tal reunir a equipe e criar uma ação para melhorar esse ponto esta semana?`
+  const diEl=document.getElementById('dash-dica')
+  if(diEl){
+    diEl.style.display='block'
+    diEl.innerHTML=`<div class="card" style="background:linear-gradient(135deg,var(--brand-light),#fff);padding:14px 18px">
+      <div style="font-size:12px;font-weight:800;color:var(--brand);margin-bottom:6px">DICA DO DIA</div>
+      <div style="font-size:13px;line-height:1.55">${dica}</div>
+    </div>`
+  }
 }
 
 function copiarLink(){navigator.clipboard?.writeText(location.origin+'/?slug='+S.negocio?.slug);showToast('✅ Link copiado!')}
@@ -1979,9 +2086,9 @@ async function initAvaliar(slug,token){
     const urlP=new URLSearchParams(location.search)
     const telUrl=urlP.get('tel')
     if(avS.gc&&telUrl){
-      const{data:cliGam}=await sb.from('clientes').select('id').eq('negocio_id',neg.id).eq('whatsapp',telUrl.replace(/\D/g,'')).maybeSingle()
-      if(cliGam){
-        const{data:progGam}=await sb.from('gamificacao_cliente').select('*').eq('negocio_id',neg.id).eq('cliente_id',cliGam.id).maybeSingle()
+      const{data:cliGamId}=await sb.rpc('buscar_cliente_id',{p_negocio_id:neg.id,p_whatsapp:telUrl})
+      if(cliGamId){
+        const{data:progGam}=await sb.from('gamificacao_cliente').select('*').eq('negocio_id',neg.id).eq('cliente_id',cliGamId).maybeSingle()
         if(progGam) mostrarGamificacaoCliente(avS.gc,progGam,progGam.total_avaliacoes||0)
       }
     }
@@ -1995,8 +2102,8 @@ async function initAvaliar(slug,token){
       }
       // Progresso de avaliações
       if(bc&&bc.min_avaliacoes>1&&linkData?.cliente_id){
-        const{count}=await sb.from('avaliacoes').select('*',{count:'exact',head:true}).eq('negocio_id',neg.id).eq('cliente_id',linkData.cliente_id)
-        const atual=(count||0)+1
+        const{data:qtdAnt}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:linkData.cliente_id})
+        const atual=(qtdAnt||0)+1
         const total=bc.min_avaliacoes
         if(atual<total){
           const progressEl=document.createElement('div')
@@ -2063,19 +2170,25 @@ async function enviarAvaliacao(){
   try{
     let cId=null
     if(nomeId&&telId){
-      // Cadastra automaticamente quem se identificar (cliente novo ou existente)
       const wppLimpo=telId.replace(/\D/g,'')
-      const{data:cli}=await sb.from('clientes').upsert({
-        negocio_id:avS.negocio.id,
-        nome:nomeId,
-        whatsapp:wppLimpo,
-        origem:'avaliacao'
-      },{onConflict:'negocio_id,whatsapp'}).select().single()
-      cId=cli?.id
+      // Busca via função segura; se não existe, cadastra
+      const{data:idExistente}=await sb.rpc('buscar_cliente_id',{p_negocio_id:avS.negocio.id,p_whatsapp:wppLimpo})
+      if(idExistente){
+        cId=idExistente
+      } else {
+        await sb.from('clientes').insert({negocio_id:avS.negocio.id,nome:nomeId,whatsapp:wppLimpo,origem:'avaliacao'})
+        const{data:novoId}=await sb.rpc('buscar_cliente_id',{p_negocio_id:avS.negocio.id,p_whatsapp:wppLimpo})
+        cId=novoId
+      }
     }
     let linkId=null
     if(avS.token){const{data}=await sb.from('links_avaliacao').select('id').eq('token',avS.token).maybeSingle();linkId=data?.id}
-    const{data:av}=await sb.from('avaliacoes').insert({negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:nomeId||null,avaliador_whatsapp:telId||null}).select().single()
+    const avId=crypto.randomUUID()
+    const{error:errAv}=await sb.from('avaliacoes').insert({id:avId,negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:nomeId||null,avaliador_whatsapp:telId||null})
+    if(errAv)throw errAv
+    const av={id:avId}
+    // Marca o link como usado
+    if(linkId)await sb.from('links_avaliacao').update({usado:true}).eq('id',linkId)
     // Atualiza progresso de gamificação
     if(cId&&avS.gc) await atualizarProgressoCliente(avS.negocio.id,cId,avS.gc)
 
@@ -2116,14 +2229,11 @@ async function enviarAvaliacao(){
     if(bc&&temId){
       const minAvals=bc.min_avaliacoes||1
 
-      // Conta avaliações anteriores deste cliente/negócio
+      // Conta avaliações deste cliente (já inclui a atual, inserida acima)
       let totalAvals=1
       if(minAvals>1){
-        let q=sb.from('avaliacoes').select('id').eq('negocio_id',avS.negocio.id)
-        if(cId) q=q.eq('cliente_id',cId)
-        else if(telId) q=q.eq('avaliador_whatsapp',telId)
-        const{data:avsAnt}=await q
-        totalAvals=(avsAnt?.length||0)+1 // +1 inclui a atual
+        const{data:qtd}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:avS.negocio.id,p_cliente_id:cId,p_whatsapp:telId||null})
+        totalAvals=qtd||1
       }
 
       if(totalAvals>=minAvals){
@@ -2131,12 +2241,13 @@ async function enviarAvaliacao(){
         const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
         const valor=bc.valor_identificado
         const expira=new Date();expira.setDate(expira.getDate()+bc.validade_dias)
-        const{data:cb}=await sb.from('codigos_bonus').insert({
+        const descricao=valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'
+        const{error:errCb}=await sb.from('codigos_bonus').insert({
           negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
           codigo,tipo:bc.tipo,valor,identificado:true,expira_em:expira.toISOString(),
-          descricao:valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'
-        }).select().single()
-        codigoGerado=cb
+          descricao
+        })
+        if(!errCb)codigoGerado={codigo,valor,descricao,expira_em:expira.toISOString()}
       } else if(minAvals>1){
         // Ainda não atingiu — mostra progresso
         progresso={atual:totalAvals,total:minAvals,faltam:minAvals-totalAvals}
