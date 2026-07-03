@@ -1427,7 +1427,9 @@ function mostrarGamificacaoCliente(gc, prog, totalAvals){
   }
 
   if(cards){
+    if(document.getElementById('gam-cards-wrap'))return
     const wrapper=document.createElement('div')
+    wrapper.id='gam-cards-wrap'
     wrapper.innerHTML=cards
     container.prepend(wrapper)
   }
@@ -2195,6 +2197,19 @@ async function initAvaliar(slug,token){
         </div>`).join('')
     }
 
+    // Gamificação também ao digitar o telefone no campo
+    const telInpGam=document.getElementById('av-id-tel')
+    if(avS.gc&&telInpGam){
+      telInpGam.addEventListener('blur',async()=>{
+        if(document.getElementById('gam-cards-wrap'))return // já mostrou
+        const telDigitado=telInpGam.value.replace(/\D/g,'')
+        if(telDigitado.length<10)return
+        const{data:cliDigId}=await sb.rpc('buscar_cliente_id',{p_negocio_id:neg.id,p_whatsapp:telDigitado})
+        if(!cliDigId)return
+        const{data:progDig}=await sb.from('gamificacao_cliente').select('*').eq('negocio_id',neg.id).eq('cliente_id',cliDigId).maybeSingle()
+        if(progDig)mostrarGamificacaoCliente(avS.gc,progDig,progDig.total_avaliacoes||0)
+      })
+    }
     // Mostra gamificação se tiver dados do cliente via URL
     const urlP=new URLSearchParams(location.search)
     const telUrl=urlP.get('tel')
@@ -2352,7 +2367,12 @@ async function enviarAvaliacao(){
       if(totalAvals>=minAvals){
         // Atingiu o mínimo — gera código
         const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
-        const valor=bc.valor_identificado
+        // Se níveis estiverem ativos, o desconto do nível do cliente substitui o padrão
+        let valor=bc.valor_identificado
+        if(cId&&avS.gc?.niveis_ativo){
+          const{data:progNivel}=await sb.from('gamificacao_cliente').select('desconto_nivel').eq('negocio_id',avS.negocio.id).eq('cliente_id',cId).maybeSingle()
+          if(progNivel?.desconto_nivel)valor=progNivel.desconto_nivel
+        }
         const expira=new Date();expira.setDate(expira.getDate()+bc.validade_dias)
         const descricao=valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'
         const{error:errCb}=await sb.from('codigos_bonus').insert({
