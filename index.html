@@ -99,7 +99,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .bn-label{font-size:9px;font-weight:700}
 @media(max-width:768px){.sidebar{display:none}.main-content{padding:14px 12px 80px}.bottom-nav{display:flex}}
 /* LOGIN */
-#screen-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(160deg,#0D0D0F,#1a1025)}
+#screen-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(160deg,#0D0D0F,#1a1025)}
 .login-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:24px;padding:36px 28px;width:100%;max-width:390px;backdrop-filter:blur(20px)}
 .login-logo{text-align:center;margin-bottom:26px}
 .login-sym{width:52px;height:46px;border-radius:14px 14px 14px 5px;background:linear-gradient(135deg,var(--amber),#E8870A);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 10px;position:relative;box-shadow:0 6px 20px rgba(245,166,35,.3)}
@@ -707,6 +707,119 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <div style="font-size:14px;font-weight:700;margin-bottom:14px" id="cfg-user-email">—</div>
           <button class="btn btn-danger btn-full" onclick="fazerLogout()">🚪 Sair da conta</button>
         </div>
+        </div><!-- fim cfg-geral -->
+
+        <!-- ABA GAMIFICAÇÃO -->
+        <div id="cfg-gamificacao" style="display:none">
+
+          <div style="background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:var(--radius);padding:16px 18px;color:#fff;margin-bottom:16px;text-align:center">
+            <div style="font-size:28px;margin-bottom:6px">🎮</div>
+            <div style="font-size:15px;font-weight:800;margin-bottom:3px">Gamificação de Clientes</div>
+            <div style="font-size:12px;opacity:.8">Engaje e fidelize seus clientes com recompensas</div>
+          </div>
+
+          <!-- NÍVEIS -->
+          <div class="sec-title">🥈 Níveis de Fidelidade</div>
+          <div class="bonus-cfg-card">
+            <div class="bcfg-toggle">
+              <div><div class="tt">Ativar sistema de níveis</div><div class="ts">Desconto aumenta conforme o cliente avalia mais</div></div>
+              <div class="amber-toggle" id="toggle-niveis" onclick="this.classList.toggle('on');toggleNiveisFields()"></div>
+            </div>
+            <div id="niveis-fields" style="display:none;margin-top:14px">
+              <div style="font-size:11px;color:#78350F;margin-bottom:10px">Configure as avaliações e o desconto de cada nível:</div>
+              <div id="niveis-lista-cfg"></div>
+              <div style="font-size:10px;color:#78350F;margin-top:8px;line-height:1.4">💡 O desconto do nível substitui o desconto padrão do bônus</div>
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarNiveis()">💾 Salvar níveis</button>
+          </div>
+
+          <!-- BÔNUS SURPRESA -->
+          <div class="sec-title">🎰 Bônus Surpresa</div>
+          <div class="card">
+            <div class="bcfg-toggle">
+              <div><div class="tt" style="color:var(--text)">Ativar bônus surpresa</div><div class="ts" style="color:var(--muted)">Desconto especial a cada X avaliações</div></div>
+              <div class="amber-toggle" id="toggle-surpresa" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="field-row">
+                <div class="field"><label>A cada quantas avaliações</label><input type="number" id="surpresa-a-cada" value="5" min="2"/></div>
+                <div class="field"><label>Desconto surpresa (%)</label><input type="number" id="surpresa-desconto" value="30" min="1" max="100"/></div>
+              </div>
+              <div style="background:var(--brand-light);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--brand);line-height:1.4">
+                🎰 Na <b id="surpresa-preview-num">5ª</b> avaliação o cliente ganha <b id="surpresa-preview-val">30%</b> de desconto surpresa!
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarSurpresa()">💾 Salvar surpresa</button>
+          </div>
+
+          <!-- CARTÃO FIDELIDADE -->
+          <div class="sec-title">🃏 Cartão de Fidelidade</div>
+          <div class="card">
+            <div class="bcfg-toggle">
+              <div><div class="tt" style="color:var(--text)">Ativar cartão de fidelidade</div><div class="ts" style="color:var(--muted)">Cliente coleciona selos e ganha prêmio</div></div>
+              <div class="amber-toggle" id="toggle-cartao" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="field"><label>Total de selos para o prêmio</label>
+                <select id="cartao-total">
+                  <option value="5">5 selos</option>
+                  <option value="10" selected>10 selos</option>
+                  <option value="15">15 selos</option>
+                  <option value="20">20 selos</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:8px"><label>Prêmio ao completar o cartão</label>
+                <input type="text" id="cartao-premio" placeholder="Ex: 1 lavagem grátis ou 50% OFF"/>
+              </div>
+              <div style="background:var(--bg);border-radius:10px;padding:10px 12px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:700">PRÉVIA DO CARTÃO</div>
+                <div id="cartao-preview-selos" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarCartao()">💾 Salvar cartão</button>
+          </div>
+
+          <!-- STREAK -->
+          <div class="sec-title">🔥 Sequência de Visitas</div>
+          <div class="card">
+            <div class="bcfg-toggle">
+              <div><div class="tt" style="color:var(--text)">Ativar streak de visitas</div><div class="ts" style="color:var(--muted)">Recompensa clientes que voltam com frequência</div></div>
+              <div class="amber-toggle" id="toggle-streak" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="field"><label>Intervalo máximo entre visitas</label>
+                <select id="streak-intervalo">
+                  <option value="7">7 dias</option>
+                  <option value="15">15 dias</option>
+                  <option value="30" selected>30 dias</option>
+                </select>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Se demorar mais que isso, a sequência reinicia</div>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px">METAS E RECOMPENSAS</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:10px;padding:10px 12px">
+                  <div style="font-size:18px">🔥</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:700">3 visitas seguidas</div><div style="font-size:10px;color:var(--muted)">Desconto extra</div></div>
+                  <input type="number" id="streak-meta1" value="5" style="width:50px;border:1.5px solid var(--border);border-radius:8px;padding:6px;font-family:inherit;font-size:13px;text-align:center"/>
+                  <span style="font-size:11px;color:var(--muted)">%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:10px;padding:10px 12px">
+                  <div style="font-size:18px">🔥🔥</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:700">5 visitas seguidas</div><div style="font-size:10px;color:var(--muted)">Desconto dobrado</div></div>
+                  <input type="number" id="streak-meta2" value="2" style="width:50px;border:1.5px solid var(--border);border-radius:8px;padding:6px;font-family:inherit;font-size:13px;text-align:center"/>
+                  <span style="font-size:11px;color:var(--muted)">x</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:10px;padding:10px 12px">
+                  <div style="font-size:18px">💎</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:700">10 visitas seguidas</div><div style="font-size:10px;color:var(--muted)">Prêmio especial</div></div>
+                  <input type="text" id="streak-meta3" value="Grátis" style="width:60px;border:1.5px solid var(--border);border-radius:8px;padding:6px;font-family:inherit;font-size:11px;text-align:center"/>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarStreak()">💾 Salvar streak</button>
+          </div>
+
+        </div><!-- fim cfg-gamificacao -->
       </div>
     </main>
   </div>
