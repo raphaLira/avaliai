@@ -2231,11 +2231,12 @@ async function initAvaliar(slug,token){
       // Progresso de avaliações
       if(bc&&bc.min_avaliacoes>1&&linkData?.cliente_id){
         const{data:qtdAnt}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:linkData.cliente_id})
-        const atual=(qtdAnt||0)+1
         const total=bc.min_avaliacoes
+        // Posição desta avaliação dentro do ciclo (reinicia após cada bônus)
+        const atual=((qtdAnt||0)%total)+1
+        const progressEl=document.createElement('div')
+        progressEl.style.cssText='background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:#fff;text-align:center'
         if(atual<total){
-          const progressEl=document.createElement('div')
-          progressEl.style.cssText='background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:#fff;text-align:center'
           progressEl.innerHTML=`
             <div style="font-size:12px;font-weight:700;margin-bottom:6px">🎁 Progresso para o seu bônus</div>
             <div style="font-size:13px;margin-bottom:8px">${atual} de ${total} avaliações</div>
@@ -2243,8 +2244,14 @@ async function initAvaliar(slug,token){
               <div style="background:#F5A623;height:100%;width:${Math.round(atual/total*100)}%;border-radius:99px"></div>
             </div>
             <div style="font-size:11px;margin-top:6px;opacity:.85">Falta${total-atual>1?'m':''} <b>${total-atual}</b> para ganhar ${bc.valor_identificado}% de desconto!</div>`
-          avIl.prepend(progressEl)
+        } else {
+          progressEl.style.background='linear-gradient(135deg,#F59E0B,#D97706)'
+          progressEl.innerHTML=`
+            <div style="font-size:22px;margin-bottom:4px">🎉</div>
+            <div style="font-size:14px;font-weight:800;margin-bottom:2px">Esta avaliação garante seu bônus!</div>
+            <div style="font-size:12px;opacity:.85">Complete a avaliação e ganhe ${bc.valor_identificado}% de desconto</div>`
         }
+        avIl.prepend(progressEl)
       }
     }
 
@@ -2364,8 +2371,9 @@ async function enviarAvaliacao(){
         totalAvals=qtd||1
       }
 
-      if(totalAvals>=minAvals){
-        // Atingiu o mínimo — gera código
+      // Ciclo: dá bônus na 3ª, 6ª, 9ª... e reinicia a contagem
+      if(minAvals<=1 || totalAvals%minAvals===0){
+        // Completou o ciclo — gera código
         const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
         // Se níveis estiverem ativos, o desconto do nível do cliente substitui o padrão
         let valor=bc.valor_identificado
@@ -2381,9 +2389,10 @@ async function enviarAvaliacao(){
           descricao
         })
         if(!errCb)codigoGerado={codigo,valor,descricao,expira_em:expira.toISOString()}
-      } else if(minAvals>1){
-        // Ainda não atingiu — mostra progresso
-        progresso={atual:totalAvals,total:minAvals,faltam:minAvals-totalAvals}
+      } else {
+        // Posição dentro do ciclo atual (reinicia após cada bônus)
+        const pos=totalAvals%minAvals
+        progresso={atual:pos,total:minAvals,faltam:minAvals-pos}
       }
     }
     mostrarSucesso(codigoGerado,temId,nomeId,telId,progresso)
