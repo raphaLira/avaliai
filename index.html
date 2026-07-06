@@ -428,6 +428,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <input type="number" id="bonus-id" value="15"/>
           <div style="font-size:11px;color:#78350F;margin-top:5px">Dado apenas para clientes identificados</div>
         </div>
+        <div class="bcfg-toggle" style="margin-top:10px">
+          <div><div class="tt">Exigir X avaliações para o bônus</div><div class="ts">O cliente ganha o desconto a cada X avaliações</div></div>
+          <div class="amber-toggle" id="toggle-min-onb" onclick="toggleMinOnb()"></div>
+        </div>
+        <div id="min-avals-onb" style="display:none;margin-top:8px">
+          <div class="field" style="margin-bottom:0"><label style="color:#92400E">Nº de avaliações necessárias</label><input type="number" id="bonus-min-avals" value="3" min="2" max="20"/></div>
+          <div style="font-size:10px;color:#78350F;margin-top:4px">Ex: 3 = bônus na 3ª, 6ª, 9ª avaliação…</div>
+        </div>
         <div class="field-row" style="margin-top:10px;margin-bottom:0">
           <div class="field"><label style="color:#92400E">Prefixo</label><input type="text" id="bonus-prefixo" value="AVA" maxlength="4"/></div>
           <div class="field"><label style="color:#92400E">Validade (dias)</label><input type="number" id="bonus-validade" value="30"/></div>
