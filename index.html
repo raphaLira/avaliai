@@ -882,14 +882,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div id="avaliar-sucesso" class="hidden">
     <div id="suc-hero-el" class="suc-hero"></div>
     <div class="suc-wrap">
-      <div class="card" style="text-align:center">
+      <div class="card" id="suc-bonus-card" style="text-align:center">
         <div class="sec-title">Seu bônus</div>
         <div style="font-size:15px;font-weight:700;color:var(--gold);margin-bottom:13px" id="suc-bonus-desc">—</div>
         <div class="code-block"><div class="code-text" id="suc-codigo">—</div><div class="code-hint" id="suc-hint">—</div></div>
         <canvas id="suc-qr" width="100" height="100" style="margin:0 auto 12px;display:block"></canvas>
         <button class="btn btn-amber btn-full" onclick="copiarCodigo()">📋 Copiar código</button>
       </div>
-      <div class="card" style="text-align:center">
+      <div class="card" id="suc-caixa-card" style="text-align:center">
         <div style="font-size:12px;color:var(--muted);margin-bottom:9px">Mostre este código ou QR no caixa.</div>
         <button class="btn btn-wpp btn-full" id="suc-wpp-btn" style="display:none">📲 Ver no WhatsApp</button>
       </div>
@@ -1691,38 +1691,99 @@ async function verTodasAvaliacoes(){
     .eq('negocio_id',S.negocio.id)
     .order('criado_em',{ascending:false})
   setLoading(false)
-  if(!todas?.length)return
+  if(!todas?.length)return showToast('Nenhuma avaliação ainda')
+  S._todasAvals=todas
+  garantirModalAvals()
+  document.getElementById('f-aval-busca').value=''
+  document.getElementById('f-aval-nota').value='todas'
+  document.getElementById('f-aval-tipo').value='todos'
+  renderTodasAvals()
+  document.getElementById('m-todas-avals').classList.add('open')
+}
 
-  // Abre modal com todas
-  let modalEl=document.getElementById('m-todas-avals')
-  if(!modalEl){
-    modalEl=document.createElement('div')
-    modalEl.id='m-todas-avals'
-    modalEl.className='modal-bg'
-    modalEl.onclick=e=>{if(e.target===modalEl)modalEl.classList.remove('open')}
-    modalEl.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
-      <div class="mhandle"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div class="mtitle" id="m-todas-title">Todas as avaliações</div>
-        <button onclick="document.getElementById('m-todas-avals').classList.remove('open')" style="background:var(--bg);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
-      </div>
-      <div id="m-todas-content"></div>
-    </div>`
-    document.body.appendChild(modalEl)
-  }
+function garantirModalAvals(){
+  if(document.getElementById('m-todas-avals'))return
+  const modalEl=document.createElement('div')
+  modalEl.id='m-todas-avals'
+  modalEl.className='modal-bg'
+  modalEl.onclick=e=>{if(e.target===modalEl)modalEl.classList.remove('open')}
+  modalEl.innerHTML=`<div class="modal" style="max-height:88vh;overflow-y:auto">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="mtitle" id="m-todas-title" style="margin:0">Avaliações</div>
+      <button onclick="document.getElementById('m-todas-avals').classList.remove('open')" style="background:var(--bg);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+    </div>
+    <input type="text" id="f-aval-busca" placeholder="🔍 Buscar por nome ou telefone…" oninput="renderTodasAvals()" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-family:inherit;font-size:13px;outline:none;margin-bottom:8px"/>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <select id="f-aval-nota" onchange="renderTodasAvals()" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:#fff;color:var(--text)">
+        <option value="todas">⭐ Todas as notas</option>
+        <option value="5">5 estrelas</option>
+        <option value="4">4 estrelas</option>
+        <option value="3">3 estrelas</option>
+        <option value="baixa">2 ou menos</option>
+      </select>
+      <select id="f-aval-tipo" onchange="renderTodasAvals()" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:#fff;color:var(--text)">
+        <option value="todos">👥 Todos</option>
+        <option value="id">Identificados</option>
+        <option value="anon">Anônimos</option>
+      </select>
+    </div>
+    <div id="m-todas-content"></div>
+  </div>`
+  document.body.appendChild(modalEl)
+}
 
-  document.getElementById('m-todas-title').textContent=`Todas as ${todas.length} avaliações`
-  document.getElementById('m-todas-content').innerHTML=todas.map(av=>{
-    const n=Math.round(av.nota_geral||0)
-    const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
-    const itens=(av.avaliacao_itens||[]).map(ai=>{
-      const com=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px">"${ai.comentario}"</div>`:''
-      return`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span>${com}</div>`
-    }).join('')
-    const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
-    return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:12px;font-weight:700;margin-bottom:5px">${nome}</div>${itens?`<div>${itens}</div>`:''} ${com}</div>`
+function cardAvaliacaoHTML(av){
+  const n=Math.round(av.nota_geral||0)
+  const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
+  const itens=(av.avaliacao_itens||[]).map(ai=>{
+    const com=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;width:100%">"${ai.comentario}"</div>`:''
+    return`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span>${com}</div>`
   }).join('')
-  modalEl.classList.add('open')
+  const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
+  return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:12px;font-weight:700;margin-bottom:5px">${nome}</div>${itens?`<div>${itens}</div>`:''} ${com}</div>`
+}
+
+function renderTodasAvals(){
+  const lista=S._todasAvals||[]
+  const busca=(document.getElementById('f-aval-busca')?.value||'').toLowerCase()
+  const buscaNum=busca.replace(/\D/g,'')
+  const fNota=document.getElementById('f-aval-nota')?.value||'todas'
+  const fTipo=document.getElementById('f-aval-tipo')?.value||'todos'
+  const filtradas=lista.filter(av=>{
+    const nome=(av.avaliador_nome||av.clientes?.nome||'anônimo').toLowerCase()
+    const tel=av.avaliador_whatsapp||''
+    if(busca&&!nome.includes(busca)&&!(buscaNum&&tel.includes(buscaNum)))return false
+    const n=Math.round(av.nota_geral||0)
+    if(fNota==='baixa'&&n>2)return false
+    if(['3','4','5'].includes(fNota)&&n!==+fNota)return false
+    if(fTipo==='id'&&!av.identificado)return false
+    if(fTipo==='anon'&&av.identificado)return false
+    return true
+  })
+  document.getElementById('m-todas-title').textContent=`${filtradas.length} de ${lista.length} avaliações`
+  document.getElementById('m-todas-content').innerHTML=filtradas.length
+    ? filtradas.map(cardAvaliacaoHTML).join('')
+    : '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhuma avaliação com esses filtros</div>'
+}
+
+async function verAvaliacaoCliente(clienteId,linkId,nome){
+  setLoading(true)
+  let q=sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',S.negocio.id).order('criado_em',{ascending:false})
+  if(clienteId)q=q.eq('cliente_id',clienteId)
+  else if(linkId)q=q.eq('link_id',linkId)
+  else{setLoading(false);return showToast('Avaliação sem cliente vinculado')}
+  const{data}=await q
+  setLoading(false)
+  if(!data?.length)return showToast('Avaliação não encontrada')
+  S._todasAvals=data
+  garantirModalAvals()
+  document.getElementById('f-aval-busca').value=''
+  document.getElementById('f-aval-nota').value='todas'
+  document.getElementById('f-aval-tipo').value='todos'
+  renderTodasAvals()
+  document.getElementById('m-todas-title').textContent=`⭐ Avaliações de ${nome}`
+  document.getElementById('m-todas-avals').classList.add('open')
 }
 
 function renderInsights(avals, mi){
@@ -1936,7 +1997,7 @@ function renderLista(lista,filtro){
       acoes=`<button class="btn btn-ghost" style="font-size:11px" title="Reenviar" onclick="enviarLista('${it.id}','${nome}','${wpp}','${it.link_id||''}')">🔁</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
     }else if(it.status==='avaliado'){
       badge=`<span class="badge bg" style="margin-top:3px">⭐ Avaliado</span>`
-      acoes=`<button class="btn btn-ghost" style="font-size:11px" onclick="navTo('dashboard')">👁 Ver</button>`
+      acoes=`<button class="btn btn-ghost" style="font-size:11px" onclick="verAvaliacaoCliente('${it.cliente_id||''}','${it.link_id||''}','${nome}')">👁 Ver</button>`
     }
     return `<div class="list-item"><div class="li-av">${ini(nome)}</div><div class="li-info"><div class="li-name">${nome}</div><div class="li-phone">${wpp}</div><div class="li-time">⏱ Adicionado há <span>${tempoLista(it.adicionado_em)}</span></div>${badge}</div><div class="li-acts">${acoes}</div></div>`
   }).join('')
@@ -2426,6 +2487,23 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
         </div>
         <div style="font-size:12px;margin-top:8px;opacity:.85">Falta${progresso.faltam>1?'m':''} <b>${progresso.faltam}</b> avaliação${progresso.faltam>1?'ões':''} para ganhar seu bônus 🎁</div>
       </div>`
+    // Esconde o card de código vazio e mostra incentivo no lugar
+    const cardBonus=document.getElementById('suc-bonus-card')
+    if(cardBonus)cardBonus.style.display='none'
+    const cardCaixa=document.getElementById('suc-caixa-card')
+    if(cardCaixa){
+      const valorBonus=avS.bc?.valor_identificado||10
+      cardCaixa.innerHTML=`
+        <div style="font-size:36px;margin-bottom:8px">🎁</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:5px">Seu cupom está quase lá!</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">
+          Avalie mais <b>${progresso.faltam}</b> vez${progresso.faltam>1?'es':''} e ganhe
+          <b style="color:var(--gold)">${valorBonus}% de desconto</b> na sua próxima visita 💜
+        </div>
+        <div style="background:var(--brand-light);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--brand);font-weight:600">
+          💡 Volte a nos visitar e avalie de novo — cada visita conta!
+        </div>`
+    }
     return
   }
   
@@ -2444,8 +2522,11 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
       const btn=document.getElementById('suc-wpp-btn');btn.style.display='flex';btn.onclick=()=>window.open(linkWpp(tel,msg),'_blank')
     }
   } else {
-    // Sem código — esconde seção de código, mostra só mensagem de progresso ou agradecimento
-    if(codigoSection) codigoSection.style.display='none'
+    // Sem código — esconde os cards de código
+    const cb2=document.getElementById('suc-bonus-card')
+    if(cb2)cb2.style.display='none'
+    const cc2=document.getElementById('suc-caixa-card')
+    if(cc2)cc2.innerHTML='<div style="font-size:30px;margin-bottom:8px">💜</div><div style="font-size:14px;font-weight:700">Avaliação enviada com sucesso!</div><div style="font-size:12px;color:var(--muted);margin-top:4px">Obrigado por nos ajudar a melhorar.</div>'
   }
 }
 function copiarCodigo(){const c=document.getElementById('suc-codigo').textContent;navigator.clipboard?.writeText(c);showToast('✅ Código copiado!')}
