@@ -2325,6 +2325,7 @@ async function initAvaliar(slug,token){
     // Verifica link e progresso DEPOIS de renderizar
     if(token){
       const{data:linkData}=await sb.from('links_avaliacao').select('usado,cliente_id').eq('token',token).maybeSingle()
+      avS.linkClienteId=linkData?.cliente_id||null
       if(linkData?.usado){
         setLoading(false)
         document.getElementById('avaliar-form').innerHTML=`<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Link já utilizado</div><div style="font-size:14px;color:var(--muted)">Este link de avaliação já foi usado.<br/>Peça um novo link ao estabelecimento.</div></div>`
@@ -2358,11 +2359,12 @@ async function initAvaliar(slug,token){
     }
 
     // Linha do tempo do ciclo dentro do card de identificação
+    try{
     if(bc&&bc.min_avaliacoes>1){
       const totalC=bc.min_avaliacoes
       const lblC=document.getElementById('av-val-lbl')
       if(lblC)lblC.textContent=`a cada ${totalC} avaliações`
-      let cidT=linkData?.cliente_id||null
+      let cidT=avS.linkClienteId||null
       if(!cidT&&telUrl){
         const{data:cT}=await sb.rpc('buscar_cliente_id',{p_negocio_id:neg.id,p_whatsapp:telUrl})
         cidT=cT
@@ -2384,6 +2386,7 @@ async function initAvaliar(slug,token){
         renderCicloTimeline(((qD||0)%totalC)+1,totalC,bc.valor_identificado)
       })
     }
+    }catch(eTl){console.warn('timeline:',eTl)}
 
     // Pré-preenche nome e tel se vieram na URL (após id-card estar pronto)
     const urlParams=new URLSearchParams(location.search)
