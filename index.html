@@ -868,8 +868,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <div class="id-sub">Identifique-se para receber seu cupom direto no WhatsApp.</div>
           <div class="bonus-single">
             <div class="bonus-single-val" id="av-val-id">15% OFF</div>
-            <div class="bonus-single-lbl">na sua próxima visita</div>
+            <div class="bonus-single-lbl" id="av-val-lbl">na sua próxima visita</div>
           </div>
+          <div id="ciclo-timeline" style="display:none"></div>
           <div class="id-inputs">
             <input class="id-inp" type="text" id="av-id-nome" placeholder="Seu nome"/>
             <input class="id-inp" type="tel" id="av-id-tel" placeholder="WhatsApp (11) 99999-9999"/>
@@ -2219,6 +2220,38 @@ function insVar(id,v){const ta=document.getElementById(id),s=ta.selectionStart,e
 function prevTpl(id){const bc=S.bonusConfig,m={'{nome}':'João Silva','{empresa}':S.negocio?.nome||'Negócio','{link}':location.origin+'/?slug='+(S.negocio?.slug||'link'),'{bonus_id}':(bc?.valor_identificado||15)+'%','{bonus_anon}':(bc?.valor_anonimo||5)+'%','{codigo}':'AVA-X7K2-M9','{validade}':'22/07/2026'};let msg=document.getElementById(id).value;Object.entries(m).forEach(([k,v])=>msg=msg.replaceAll(k,v));document.getElementById('preview-content').textContent=msg;openModal('m-preview')}
 
 // ── AVALIAR ──
+function renderCicloTimeline(pos,total,valor){
+  const el=document.getElementById('ciclo-timeline')
+  if(!el)return
+  let steps=''
+  if(total<=6){
+    for(let i=1;i<=total;i++){
+      const done=pos!==null&&i<pos
+      const atual=pos!==null&&i===pos
+      const isGift=i===total
+      const bg=done?'#F59E0B':(atual?'#fff':'rgba(0,0,0,.08)')
+      const cor=done?'#fff':(atual?'#D97706':'#B45309')
+      const borda=atual?'2px solid #F59E0B':'2px solid transparent'
+      const glow=atual?';box-shadow:0 0 0 3px rgba(245,158,11,.28)':''
+      const inner=isGift?'🎁':(done?'✓':i)
+      steps+=`<div style="width:30px;height:30px;border-radius:50%;background:${bg};border:${borda};color:${cor};display:flex;align-items:center;justify-content:center;font-size:${isGift?'15px':'13px'};font-weight:800;flex-shrink:0${glow}">${inner}</div>`
+      if(i<total)steps+=`<div style="flex:1;max-width:34px;height:3px;border-radius:99px;background:${done?'#F59E0B':'rgba(0,0,0,.13)'}"></div>`
+    }
+  } else {
+    const p=pos||1
+    steps=`<div style="flex:1;background:rgba(0,0,0,.1);border-radius:99px;height:9px;overflow:hidden"><div style="background:#F59E0B;height:100%;width:${Math.round(p/total*100)}%;border-radius:99px"></div></div><div style="font-size:17px;margin-left:8px">🎁</div>`
+  }
+  let txt
+  if(pos===null)txt=`A cada <b>${total}</b> avaliações você ganha <b>${valor}% OFF</b>`
+  else if(pos===total)txt=`🎉 <b>Esta avaliação libera seu cupom de ${valor}%!</b>`
+  else txt=`Você está na avaliação <b>${pos} de ${total}</b> · falta${total-pos>1?'m':''} <b>${total-pos}</b> para o cupom`
+  el.innerHTML=`<div style="background:rgba(255,255,255,.6);border-radius:11px;padding:13px 12px 11px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:center;gap:5px">${steps}</div>
+    <div style="text-align:center;font-size:11px;color:#92400E;font-weight:600;margin-top:9px;line-height:1.4">${txt}</div>
+  </div>`
+  el.style.display='block'
+}
+
 async function initAvaliar(slug,token){
   showScreen('screen-avaliar')
   setLoading(true)
@@ -2322,6 +2355,34 @@ async function initAvaliar(slug,token){
         }
         avIl.prepend(progressEl)
       }
+    }
+
+    // Linha do tempo do ciclo dentro do card de identificação
+    if(bc&&bc.min_avaliacoes>1){
+      const totalC=bc.min_avaliacoes
+      const lblC=document.getElementById('av-val-lbl')
+      if(lblC)lblC.textContent=`a cada ${totalC} avaliações`
+      let cidT=linkData?.cliente_id||null
+      if(!cidT&&telUrl){
+        const{data:cT}=await sb.rpc('buscar_cliente_id',{p_negocio_id:neg.id,p_whatsapp:telUrl})
+        cidT=cT
+      }
+      let posT=null
+      if(cidT){
+        const{data:qT}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:cidT})
+        posT=((qT||0)%totalC)+1
+      }
+      renderCicloTimeline(posT,totalC,bc.valor_identificado)
+      // Atualiza a posição quando o cliente digita o telefone
+      const telInpT=document.getElementById('av-id-tel')
+      if(telInpT)telInpT.addEventListener('blur',async()=>{
+        const tD=telInpT.value.replace(/\D/g,'')
+        if(tD.length<10)return
+        const{data:cD}=await sb.rpc('buscar_cliente_id',{p_negocio_id:neg.id,p_whatsapp:tD})
+        if(!cD)return renderCicloTimeline(1,totalC,bc.valor_identificado)
+        const{data:qD}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:cD})
+        renderCicloTimeline(((qD||0)%totalC)+1,totalC,bc.valor_identificado)
+      })
     }
 
     // Pré-preenche nome e tel se vieram na URL (após id-card estar pronto)
