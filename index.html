@@ -4,6 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>AvaliaAí</title>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="AvaliaAí ⭐ Avalie e ganhe bônus"/>
+<meta property="og:description" content="Deixe sua avaliação em 1 minuto e ganhe um cupom de desconto!"/>
+<meta property="og:image" content="https://avaliai-weld.vercel.app/icon-512.png"/>
+<meta property="og:image:width" content="512"/>
+<meta property="og:image:height" content="512"/>
 
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json"/>
@@ -640,16 +646,26 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="bonus-cfg-card">
           <div class="bcfg-t">🎁 Bônus para avaliadores</div>
           <div class="field"><label style="color:#92400E">Tipo</label>
-            <select id="cfg-bonus-tipo"><option value="percentual">% de desconto</option><option value="valor_fixo">Valor fixo</option><option value="servico_gratis">Serviço grátis</option><option value="personalizado">Personalizado</option></select>
+            <select id="cfg-bonus-tipo" onchange="atualizarTipoBonus()"><option value="percentual">% de desconto</option><option value="valor_fixo">Valor fixo</option><option value="servico_gratis">Serviço grátis</option><option value="personalizado">Personalizado</option></select>
           </div>
-          <div class="field" style="margin-top:10px;margin-bottom:4px">
-            <label style="color:#92400E">Percentual de desconto (%)</label>
+          <div class="field" style="margin-top:10px;margin-bottom:4px" id="cfg-bonus-valor-wrap">
+            <label style="color:#92400E" id="cfg-bonus-valor-lbl">Percentual de desconto (%)</label>
             <input type="number" id="cfg-bonus-id" value="15"/>
             <div style="font-size:11px;color:#78350F;margin-top:5px">Dado apenas para clientes identificados (nome + WhatsApp)</div>
+          </div>
+          <div class="field" style="margin-top:10px;margin-bottom:4px;display:none" id="cfg-bonus-desc-wrap">
+            <label style="color:#92400E">Descreva o bônus</label>
+            <input type="text" id="cfg-bonus-desc" placeholder="Ex: 1 lavagem simples grátis" maxlength="60"/>
+            <div style="font-size:11px;color:#78350F;margin-top:5px">É isso que o cliente verá como recompensa</div>
           </div>
           <div class="field-row" style="margin-bottom:0">
             <div class="field"><label style="color:#92400E">Prefixo</label><input type="text" id="cfg-bonus-prefixo" value="AVA" maxlength="4"/></div>
             <div class="field"><label style="color:#92400E">Validade (dias)</label><input type="number" id="cfg-bonus-validade" value="30"/></div>
+          </div>
+          <div class="field" style="margin-top:10px;margin-bottom:4px">
+            <label style="color:#92400E">Mínimo de itens que o cliente deve avaliar</label>
+            <input type="number" id="cfg-min-itens" value="1" min="1" max="20"/>
+            <div style="font-size:11px;color:#78350F;margin-top:5px">O cliente só consegue enviar a avaliação após dar nota nesse nº de itens</div>
           </div>
           <div class="bcfg-toggle" style="margin-top:12px">
             <div><div class="tt">Exigir X avaliações para o bônus</div><div class="ts">Ative para dar bônus só após N avaliações</div></div>
@@ -915,6 +931,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="modal">
     <div class="mhandle"></div><div class="mtitle">👤 Novo cliente</div><div class="msub">* obrigatórios</div>
     <div class="field"><label>Nome *</label><input type="text" id="nc-nome" placeholder="Maria Silva"/></div>
+    <div class="field"><label>Apelido <span style="font-weight:400;color:var(--muted)">(como ele gosta de ser chamado)</span></label><input type="text" id="nc-apelido" placeholder="Ex: Mari"/></div>
     <div class="field"><label>WhatsApp *</label><input type="tel" id="nc-whatsapp" placeholder="(11) 99999-9999"/></div>
     <div class="field"><label>E-mail</label><input type="email" id="nc-email" placeholder="cliente@email.com"/></div>
     <div class="field"><label>CPF</label><input type="text" id="nc-cpf" placeholder="000.000.000-00"/></div>
@@ -952,6 +969,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="mtitle">👤 Novo cliente + Lista</div>
     <div class="msub">Cadastra o cliente e já adiciona na lista de disparo</div>
     <div class="field"><label>Nome *</label><input type="text" id="nl-nome" placeholder="Ex: João Silva"/></div>
+    <div class="field"><label>Apelido <span style="font-weight:400;color:var(--muted)">(opcional)</span></label><input type="text" id="nl-apelido" placeholder="Ex: Jão"/></div>
     <div class="field"><label>WhatsApp *</label><input type="tel" id="nl-whatsapp" placeholder="(11) 99999-9999"/></div>
     <button class="btn btn-primary btn-full" onclick="novoClienteNaLista()">➕ Cadastrar e adicionar à lista</button>
   </div>
@@ -1887,12 +1905,13 @@ async function carregarClientes(busca=''){
   const{data}=await q
   const el=document.getElementById('lista-clientes')
   if(!data?.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum cliente</div>';return}
-  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${c.nome}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${c.nome}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost" onclick="editarCliente('${c.id}','${c.nome}','${c.whatsapp}','${c.email||''}','${c.cpf||''}','${c.logradouro||''}','${c.numero||''}','${c.bairro||''}','${c.cep||''}','${c.cidade||''}','${c.uf||''}')">✏️</button></div></div>`).join('')
+  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${c.nome}${c.apelido?` <span style="font-weight:400;color:var(--muted);font-size:11px">"${c.apelido}"</span>`:''}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${c.apelido||c.nome}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost" onclick="editarCliente('${c.id}','${c.nome}','${c.whatsapp}','${c.email||''}','${c.cpf||''}','${c.logradouro||''}','${c.numero||''}','${c.bairro||''}','${c.cep||''}','${c.cidade||''}','${c.uf||''}','${c.apelido||''}')">✏️</button></div></div>`).join('')
 }
 function buscarClientes(v){carregarClientes(v)}
-function editarCliente(id,nome,whatsapp,email,cpf,rua,num,bairro,cep,cidade,uf){
+function editarCliente(id,nome,whatsapp,email,cpf,rua,num,bairro,cep,cidade,uf,apelido){
   // Preenche o modal com dados do cliente
   document.getElementById('nc-nome').value=nome||''
+  document.getElementById('nc-apelido').value=apelido||''
   document.getElementById('nc-whatsapp').value=whatsapp||''
   document.getElementById('nc-email').value=email||''
   document.getElementById('nc-cpf').value=cpf||''
@@ -1914,7 +1933,7 @@ async function salvarCliente(){
   if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
   const editId=document.getElementById('nc-nome').dataset.editId
   setLoading(true)
-  const dados={nome,whatsapp:wpp,email:document.getElementById('nc-email').value||null,cpf:document.getElementById('nc-cpf').value||null,logradouro:document.getElementById('nc-rua').value||null,numero:document.getElementById('nc-num').value||null,bairro:document.getElementById('nc-bairro').value||null,cep:document.getElementById('nc-cep').value||null,cidade:document.getElementById('nc-cidade').value||null,uf:document.getElementById('nc-uf').value||null}
+  const dados={nome,apelido:document.getElementById('nc-apelido').value.trim()||null,whatsapp:wpp,email:document.getElementById('nc-email').value||null,cpf:document.getElementById('nc-cpf').value||null,logradouro:document.getElementById('nc-rua').value||null,numero:document.getElementById('nc-num').value||null,bairro:document.getElementById('nc-bairro').value||null,cep:document.getElementById('nc-cep').value||null,cidade:document.getElementById('nc-cidade').value||null,uf:document.getElementById('nc-uf').value||null}
   let error
   if(editId){
     // Atualiza cliente existente
@@ -1931,7 +1950,7 @@ async function salvarCliente(){
   showToast(editId?'✅ Cliente atualizado!':'✅ Cliente salvo!')
   carregarClientes()
   // Limpa campos e editId
-  ;['nc-nome','nc-whatsapp','nc-email','nc-cpf','nc-rua','nc-num','nc-bairro','nc-cep','nc-cidade'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId}})
+  ;['nc-nome','nc-apelido','nc-whatsapp','nc-email','nc-cpf','nc-rua','nc-num','nc-bairro','nc-cep','nc-cidade'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';delete el.dataset.editId}})
   document.querySelector('#m-novo-cliente .mtitle').textContent='👤 Novo cliente'
 }
 async function importarContatos(inp){
@@ -1954,7 +1973,7 @@ async function carregarLista(filtro='todos'){
   if(!S.negocio)return
   S._filtroLista=filtro
   let q=sb.from('lista_disparo')
-    .select('*,clientes(nome,whatsapp),links_avaliacao(token)')
+    .select('*,clientes(nome,apelido,whatsapp),links_avaliacao(token)')
     .eq('negocio_id',S.negocio.id)
     .order('adicionado_em',{ascending:false})
   if(filtro!=='todos')q=q.eq('status',filtro)
@@ -1986,7 +2005,7 @@ function renderLista(lista,filtro){
     return
   }
   el.innerHTML=lista.map(it=>{
-    const nome=it.clientes?.nome||'—'
+    const nome=it.clientes?.apelido||it.clientes?.nome||'—'
     const wpp=it.clientes?.whatsapp||'—'
     const urgente=it.status==='pendente'&&new Date(it.adicionado_em)<new Date(Date.now()-7*24*60*60*1000)
     let badge='',acoes=''
@@ -2018,8 +2037,9 @@ async function novoClienteNaLista(){
   if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
   setLoading(true)
   // Upsert cliente
+  const apelidoNl=document.getElementById('nl-apelido')?.value.trim()||null
   const{data:cli,error}=await sb.from('clientes').upsert({
-    negocio_id:S.negocio.id,nome,whatsapp:wpp,origem:'lista'
+    negocio_id:S.negocio.id,nome,apelido:apelidoNl,whatsapp:wpp,origem:'lista'
   },{onConflict:'negocio_id,whatsapp'}).select().single()
   if(error){setLoading(false);return showToast('❌ '+error.message)}
   closeModalDirect('m-novo-na-lista')
@@ -2145,6 +2165,9 @@ async function carregarConfig(){
   if(bc){
     document.getElementById('cfg-bonus-tipo').value=bc.tipo||'percentual'
     document.getElementById('cfg-bonus-id').value=bc.valor_identificado||15
+    document.getElementById('cfg-bonus-desc').value=bc.descricao_personalizada||''
+    document.getElementById('cfg-min-itens').value=bc.min_itens||1
+    atualizarTipoBonus()
     document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo||'AVA'
     document.getElementById('cfg-bonus-validade').value=bc.validade_dias||30
     if(bc.min_avaliacoes>1){
@@ -2176,6 +2199,19 @@ function renderCfgItens(){
 function delCfgItem(i){S.itens.splice(i,1);renderCfgItens()}
 function addCfgItem(){const inp=document.getElementById('cfg-new-item'),v=inp.value.trim();if(!v)return;const emoji=v.match(/^\p{Emoji}/u)?.[0]||null,nome=emoji?v.replace(emoji,'').trim():v;S.itens.push({negocio_id:S.negocio.id,nome,emoji,ordem:S.itens.length});inp.value='';renderCfgItens()}
 async function salvarItens(){setLoading(true);await sb.from('itens_avaliacao').delete().eq('negocio_id',S.negocio.id);if(S.itens.length)await sb.from('itens_avaliacao').insert(S.itens.map((it,i)=>({negocio_id:S.negocio.id,nome:it.nome,emoji:it.emoji,ordem:i})));await carregarItens();setLoading(false);showToast('✅ Itens salvos!')}
+function atualizarTipoBonus(){
+  const t=document.getElementById('cfg-bonus-tipo').value
+  const wrapV=document.getElementById('cfg-bonus-valor-wrap')
+  const wrapD=document.getElementById('cfg-bonus-desc-wrap')
+  const lbl=document.getElementById('cfg-bonus-valor-lbl')
+  if(t==='personalizado'||t==='servico_gratis'){
+    wrapV.style.display='none';wrapD.style.display='block'
+  } else {
+    wrapV.style.display='block';wrapD.style.display='none'
+    lbl.textContent=t==='valor_fixo'?'Valor do desconto (R$)':'Percentual de desconto (%)'
+  }
+}
+
 async function salvarBonusConfig(){
   setLoading(true)
   const minAvals=document.getElementById('cfg-toggle-min-avals')?.classList.contains('on')
@@ -2189,7 +2225,9 @@ async function salvarBonusConfig(){
     bonus_anonimo_ativo:false,
     prefixo_codigo:document.getElementById('cfg-bonus-prefixo').value,
     validade_dias:+document.getElementById('cfg-bonus-validade').value,
-    min_avaliacoes:minAvals
+    min_avaliacoes:minAvals,
+    descricao_personalizada:document.getElementById('cfg-bonus-desc').value.trim()||null,
+    min_itens:Math.max(1,+(document.getElementById('cfg-min-itens').value||1))
   },{onConflict:'negocio_id'})
   setLoading(false)
   if(error)return showToast('❌ '+error.message)
@@ -2242,8 +2280,8 @@ function renderCicloTimeline(pos,total,valor){
     steps=`<div style="flex:1;background:rgba(0,0,0,.1);border-radius:99px;height:9px;overflow:hidden"><div style="background:#F59E0B;height:100%;width:${Math.round(p/total*100)}%;border-radius:99px"></div></div><div style="font-size:17px;margin-left:8px">🎁</div>`
   }
   let txt
-  if(pos===null)txt=`A cada <b>${total}</b> avaliações você ganha <b>${valor}% OFF</b>`
-  else if(pos===total)txt=`🎉 <b>Esta avaliação libera seu cupom de ${valor}%!</b>`
+  if(pos===null)txt=`A cada <b>${total}</b> avaliações você ganha <b>${valor}</b>`
+  else if(pos===total)txt=`🎉 <b>Esta avaliação libera seu bônus!</b>`
   else txt=`Você está na avaliação <b>${pos} de ${total}</b> · falta${total-pos>1?'m':''} <b>${total-pos}</b> para o cupom`
   el.innerHTML=`<div style="background:rgba(255,255,255,.6);border-radius:11px;padding:13px 12px 11px;margin-bottom:14px">
     <div style="display:flex;align-items:center;justify-content:center;gap:5px">${steps}</div>
@@ -2279,7 +2317,12 @@ async function initAvaliar(slug,token){
 
     // Configura bônus
     if(bc){
-      document.getElementById('av-val-id').textContent=bc.valor_identificado+'% OFF'
+      const ehTexto=bc.tipo==='personalizado'||bc.tipo==='servico_gratis'
+      const lblCurto=ehTexto?(bc.descricao_personalizada||'Bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' OFF':bc.valor_identificado+'% OFF')
+      avS.bonusLabel=ehTexto?(bc.descricao_personalizada||'um bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' de desconto':bc.valor_identificado+'% de desconto')
+      const valElB=document.getElementById('av-val-id')
+      valElB.textContent=lblCurto
+      if(lblCurto.length>12)valElB.style.fontSize='17px' 
     } else {
       // Sem bônus configurado — esconde card de identificação
       document.getElementById('id-card').style.display='none'
@@ -2346,13 +2389,13 @@ async function initAvaliar(slug,token){
             <div style="background:rgba(255,255,255,.2);border-radius:99px;height:8px;overflow:hidden">
               <div style="background:#F5A623;height:100%;width:${Math.round(atual/total*100)}%;border-radius:99px"></div>
             </div>
-            <div style="font-size:11px;margin-top:6px;opacity:.85">Falta${total-atual>1?'m':''} <b>${total-atual}</b> para ganhar ${bc.valor_identificado}% de desconto!</div>`
+            <div style="font-size:11px;margin-top:6px;opacity:.85">Falta${total-atual>1?'m':''} <b>${total-atual}</b> para ganhar ${avS.bonusLabel}!</div>`
         } else {
           progressEl.style.background='linear-gradient(135deg,#F59E0B,#D97706)'
           progressEl.innerHTML=`
             <div style="font-size:22px;margin-bottom:4px">🎉</div>
             <div style="font-size:14px;font-weight:800;margin-bottom:2px">Esta avaliação garante seu bônus!</div>
-            <div style="font-size:12px;opacity:.85">Complete a avaliação e ganhe ${bc.valor_identificado}% de desconto</div>`
+            <div style="font-size:12px;opacity:.85">Complete a avaliação e ganhe ${avS.bonusLabel}</div>`
         }
         avIl.prepend(progressEl)
       }
@@ -2374,16 +2417,16 @@ async function initAvaliar(slug,token){
         const{data:qT}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:cidT})
         posT=((qT||0)%totalC)+1
       }
-      renderCicloTimeline(posT,totalC,bc.valor_identificado)
+      renderCicloTimeline(posT,totalC,avS.bonusLabel||'')
       // Atualiza a posição quando o cliente digita o telefone
       const telInpT=document.getElementById('av-id-tel')
       if(telInpT)telInpT.addEventListener('blur',async()=>{
         const tD=telInpT.value.replace(/\D/g,'')
         if(tD.length<10)return
         const{data:cD}=await sb.rpc('buscar_cliente_id',{p_negocio_id:neg.id,p_whatsapp:tD})
-        if(!cD)return renderCicloTimeline(1,totalC,bc.valor_identificado)
+        if(!cD)return renderCicloTimeline(1,totalC,avS.bonusLabel||'')
         const{data:qD}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:cD})
-        renderCicloTimeline(((qD||0)%totalC)+1,totalC,bc.valor_identificado)
+        renderCicloTimeline(((qD||0)%totalC)+1,totalC,avS.bonusLabel||'')
       })
     }
     }catch(eTl){console.warn('timeline:',eTl)}
@@ -2428,9 +2471,12 @@ function toggleSkipId(){
 async function enviarAvaliacao(){
   const itensDados=avS.itens.map((item,idx)=>{
     const sr=document.querySelector(`.mini-stars[data-item="${idx}"]`)
-    const nota=[...sr.querySelectorAll('.mstar.lit')].length||3
+    const nota=[...sr.querySelectorAll('.mstar.lit')].length
     return{item_id:item.id,nota,humor:null,comentario:document.getElementById('av-c-'+idx)?.value||null}
   })
+  const avaliadosQtd=itensDados.filter(i=>i.nota>0).length
+  const minItensReq=Math.min(avS.bc?.min_itens||1,avS.itens.length||1)
+  if(avaliadosQtd<minItensReq)return showToast(`⭐ Avalie pelo menos ${minItensReq} ${minItensReq>1?'itens':'item'} para enviar`)
   const nomeId=document.getElementById('av-id-nome').value.trim()
   const telId=document.getElementById('av-id-tel').value.trim().replace(/\D/g,'')
   const temId=avS.identificado&&nomeId&&telId.length>=10
@@ -2508,14 +2554,16 @@ async function enviarAvaliacao(){
       if(minAvals<=1 || totalAvals%minAvals===0){
         // Completou o ciclo — gera código
         const{data:codigo}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo})
-        // Se níveis estiverem ativos, o desconto do nível do cliente substitui o padrão
+        // Personalizado/serviço grátis: usa a descrição; senão, valor numérico
+        const ehTextoB=bc.tipo==='personalizado'||bc.tipo==='servico_gratis'
         let valor=bc.valor_identificado
-        if(cId&&avS.gc?.niveis_ativo){
+        if(!ehTextoB&&cId&&avS.gc?.niveis_ativo){
           const{data:progNivel}=await sb.from('gamificacao_cliente').select('desconto_nivel').eq('negocio_id',avS.negocio.id).eq('cliente_id',cId).maybeSingle()
           if(progNivel?.desconto_nivel)valor=progNivel.desconto_nivel
         }
         const expira=new Date();expira.setDate(expira.getDate()+bc.validade_dias)
-        const descricao=valor+(bc.tipo==='percentual'?'%':' reais')+' de desconto'
+        const descricao=ehTextoB?(bc.descricao_personalizada||'Bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+valor+' de desconto':valor+'% de desconto')
+        if(ehTextoB)valor=0
         const{error:errCb}=await sb.from('codigos_bonus').insert({
           negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
           codigo,tipo:bc.tipo,valor,identificado:true,expira_em:expira.toISOString(),
@@ -2556,13 +2604,13 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
     if(cardBonus)cardBonus.style.display='none'
     const cardCaixa=document.getElementById('suc-caixa-card')
     if(cardCaixa){
-      const valorBonus=avS.bc?.valor_identificado||10
+      const valorBonus=avS.bonusLabel||'um desconto' 
       cardCaixa.innerHTML=`
         <div style="font-size:36px;margin-bottom:8px">🎁</div>
         <div style="font-size:16px;font-weight:800;margin-bottom:5px">Seu cupom está quase lá!</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.6">
           Avalie mais <b>${progresso.faltam}</b> vez${progresso.faltam>1?'es':''} e ganhe
-          <b style="color:var(--gold)">${valorBonus}% de desconto</b> na sua próxima visita 💜
+          <b style="color:var(--gold)">${valorBonus}</b> na sua próxima visita 💜
         </div>
         <div style="background:var(--brand-light);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--brand);font-weight:600">
           💡 Volte a nos visitar e avalie de novo — cada visita conta!
