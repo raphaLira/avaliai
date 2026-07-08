@@ -688,6 +688,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <span class="tpl-var" onclick="insVar('tpl-pedido','{empresa}')">{empresa}</span>
             <span class="tpl-var" onclick="insVar('tpl-pedido','{link}')">{link}</span>
             <span class="tpl-var" onclick="insVar('tpl-pedido','{bonus_id}')">{bonus_id}</span>
+            <span class="tpl-var" onclick="insVar('tpl-pedido','{apelido}')">{apelido}</span>
           </div>
           <textarea class="tpl-ta" id="tpl-pedido"></textarea>
           <div class="tpl-acts">
@@ -702,6 +703,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <span class="tpl-var" onclick="insVar('tpl-codigo','{empresa}')">{empresa}</span>
             <span class="tpl-var" onclick="insVar('tpl-codigo','{codigo}')">{codigo}</span>
             <span class="tpl-var" onclick="insVar('tpl-codigo','{bonus_id}')">{bonus_id}</span>
+            <span class="tpl-var" onclick="insVar('tpl-codigo','{apelido}')">{apelido}</span>
             <span class="tpl-var" onclick="insVar('tpl-codigo','{validade}')">{validade}</span>
           </div>
           <textarea class="tpl-ta" id="tpl-codigo"></textarea>
@@ -948,7 +950,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="field" style="flex:2"><label>Cidade</label><input type="text" id="nc-cidade"/></div>
       <div class="field" style="flex:1"><label>UF</label><select id="nc-uf"><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>CE</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="salvarCliente()">Salvar cliente</button>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="cancelarCadastroCliente()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="salvarCliente()">Salvar cliente</button>
+    </div>
   </div>
 </div>
 
@@ -971,7 +976,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="field"><label>Nome *</label><input type="text" id="nl-nome" placeholder="Ex: João Silva"/></div>
     <div class="field"><label>Apelido <span style="font-weight:400;color:var(--muted)">(opcional)</span></label><input type="text" id="nl-apelido" placeholder="Ex: Jão"/></div>
     <div class="field"><label>WhatsApp *</label><input type="tel" id="nl-whatsapp" placeholder="(11) 99999-9999"/></div>
-    <button class="btn btn-primary btn-full" onclick="novoClienteNaLista()">➕ Cadastrar e adicionar à lista</button>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModalDirect('m-novo-na-lista')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="novoClienteNaLista()">➕ Cadastrar e adicionar</button>
+    </div>
   </div>
 </div>
 
@@ -1054,7 +1062,7 @@ function closeModalDirect(id){document.getElementById(id).classList.remove('open
 function ini(n){return(n||'??').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}
 function fmtDate(dt){if(!dt)return'—';return new Date(dt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
 function tempoLista(dt){const d=Date.now()-new Date(dt).getTime(),m=Math.floor(d/60000);if(m<60)return m+'min';const h=Math.floor(m/60);if(h<24)return h+'h';const dy=Math.floor(h/24);if(dy<7)return dy+' dia'+(dy>1?'s':'');return Math.floor(dy/7)+' sem'}
-function montarMsg(tpl,v){return(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]||'{'+k+'}')}
+function montarMsg(tpl,v){if(v&&!v.apelido)v.apelido=v.nome;return(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]||'{'+k+'}')}
 function linkWpp(tel,msg){return'https://wa.me/55'+tel.replace(/\D/g,'')+'?text='+encodeURIComponent(msg)}
 
 // ── AUTH ──
@@ -1928,6 +1936,16 @@ function editarCliente(id,nome,whatsapp,email,cpf,rua,num,bairro,cep,cidade,uf,a
   openModal('m-novo-cliente')
 }
 
+function cancelarCadastroCliente(){
+  ;['nc-nome','nc-apelido','nc-whatsapp','nc-email','nc-cpf','nc-rua','nc-num','nc-bairro','nc-cep','nc-cidade'].forEach(id=>{
+    const el=document.getElementById(id)
+    if(el){el.value='';delete el.dataset.editId}
+  })
+  const t=document.querySelector('#m-novo-cliente .mtitle')
+  if(t)t.textContent='➕ Novo cliente'
+  closeModalDirect('m-novo-cliente')
+}
+
 async function salvarCliente(){
   const nome=document.getElementById('nc-nome').value.trim(),wpp=document.getElementById('nc-whatsapp').value.trim()
   if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
@@ -2213,6 +2231,13 @@ function atualizarTipoBonus(){
 }
 
 async function salvarBonusConfig(){
+  // Mínimo de itens não pode ser maior que a quantidade de itens cadastrados
+  const qtdItensCad=(S.itens||[]).length
+  const minItensCfg=Math.max(1,+(document.getElementById('cfg-min-itens').value||1))
+  if(qtdItensCad>0&&minItensCfg>qtdItensCad){
+    document.getElementById('cfg-min-itens').value=qtdItensCad
+    return showToast(`⚠️ Você tem ${qtdItensCad} ${qtdItensCad>1?'itens':'item'} de avaliação — o mínimo não pode ser maior que isso`)
+  }
   setLoading(true)
   const minAvals=document.getElementById('cfg-toggle-min-avals')?.classList.contains('on')
     ? +(document.getElementById('cfg-min-avals')?.value||3)
@@ -2227,7 +2252,7 @@ async function salvarBonusConfig(){
     validade_dias:+document.getElementById('cfg-bonus-validade').value,
     min_avaliacoes:minAvals,
     descricao_personalizada:document.getElementById('cfg-bonus-desc').value.trim()||null,
-    min_itens:Math.max(1,+(document.getElementById('cfg-min-itens').value||1))
+    min_itens:minItensCfg
   },{onConflict:'negocio_id'})
   setLoading(false)
   if(error)return showToast('❌ '+error.message)
