@@ -575,12 +575,17 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             <div class="lh-stat"><div class="lh-sv" id="lista-stat-aval">0</div><div class="lh-sl">⭐ Avaliados</div></div>
           </div>
           <div class="lh-acts">
-            <button class="lh-btn wpp" onclick="dispararTodos()">📲 Disparar todos</button>
-            <button class="lh-btn" onclick="openModal('m-agendar')">⏰ Agendar</button>
+            <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:7px 13px;font-size:11px;font-weight:700">📤 Enviados hoje: <span id="lista-hoje">0</span></div>
           </div>
         </div>
 
         <!-- Filtros -->
+        <div id="aviso-envio" style="display:none;background:#FFF7E6;border:1px solid #F0D48A;border-radius:12px;padding:11px 14px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+            <div style="font-size:11.5px;color:#78350F;line-height:1.55">📲 <b>Envio seguro:</b> mande um por um, logo após o atendimento · aguarde 2-5 min entre envios · personalize com {apelido}. Rajadas podem restringir seu WhatsApp.</div>
+            <button onclick="dispensarAvisoEnvio()" style="background:none;border:none;color:#B45309;font-weight:800;font-size:11px;cursor:pointer;flex-shrink:0;font-family:inherit">entendi</button>
+          </div>
+        </div>
         <div style="display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px">
           <button class="btn btn-primary" id="filtro-todos" onclick="filtrarLista('todos')" style="font-size:12px;padding:8px 14px;flex-shrink:0">Todos</button>
           <button class="btn btn-ghost" id="filtro-pendente" onclick="filtrarLista('pendente')" style="font-size:12px;padding:8px 14px;flex-shrink:0">⏳ Aguardando</button>
@@ -965,7 +970,6 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
     <div class="msub" id="m-enviar-sub">—</div>
     <div style="background:#DCF8C6;border-radius:12px 12px 12px 2px;padding:12px 14px;font-size:13px;line-height:1.6;color:#0d1f12;margin-bottom:12px;white-space:pre-line" id="m-enviar-preview">—</div>
     <button class="btn btn-wpp btn-full" id="m-enviar-wpp-btn">📲 Abrir no WhatsApp</button>
-    <button class="btn btn-primary btn-full" id="m-enviar-next" style="margin-top:7px;display:none">Próximo →</button>
     <button class="btn btn-ghost btn-full" style="margin-top:7px" onclick="closeModalDirect('m-enviar')">Cancelar</button>
   </div>
 </div>
@@ -982,15 +986,6 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
       <button class="btn btn-ghost" style="flex:1" onclick="closeModalDirect('m-novo-na-lista')">Cancelar</button>
       <button class="btn btn-primary" style="flex:2" onclick="novoClienteNaLista()">➕ Cadastrar e adicionar</button>
     </div>
-  </div>
-</div>
-
-<div class="modal-bg" id="m-agendar" onclick="closeModal(event,'m-agendar')">
-  <div class="modal">
-    <div class="mhandle"></div><div class="mtitle">⏰ Agendar disparo</div><div class="msub">Todos os clientes da lista receberão</div>
-    <div class="field"><label>Data</label><input type="date" id="ag-data"/></div>
-    <div class="field"><label>Horário</label><input type="time" id="ag-hora" value="09:00"/></div>
-    <button class="btn btn-primary btn-full" onclick="confirmarAgendamento()">✓ Confirmar</button>
   </div>
 </div>
 
@@ -2018,7 +2013,43 @@ async function importarContatos(inp){
 }
 
 // ── LISTA ──
+function dispensarAvisoEnvio(){
+  localStorage.setItem('avisoEnvioOk','1')
+  const el=document.getElementById('aviso-envio')
+  if(el)el.style.display='none'
+}
+
+function mostrarRegrasEnvio(){
+  if(localStorage.getItem('vistoRegrasEnvio'))return
+  const ov=document.createElement('div')
+  ov.id='regras-envio-ov'
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px'
+  ov.innerHTML=`<div style="background:#fff;border-radius:22px;padding:26px 22px;width:100%;max-width:360px">
+    <div style="font-size:36px;text-align:center;margin-bottom:8px">🛡️</div>
+    <div style="font-size:17px;font-weight:800;text-align:center;margin-bottom:4px">Proteja seu WhatsApp</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px">3 regras de ouro para nunca ser restringido</div>
+    <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:16px">
+      <div style="display:flex;gap:11px;align-items:flex-start"><div style="background:var(--brand-light);color:var(--brand);border-radius:9px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">1</div><div style="font-size:13px;line-height:1.5"><b>Envie logo após o atendimento</b>, um por um — nunca a lista inteira de uma vez</div></div>
+      <div style="display:flex;gap:11px;align-items:flex-start"><div style="background:var(--brand-light);color:var(--brand);border-radius:9px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">2</div><div style="font-size:13px;line-height:1.5"><b>Aguarde 2-5 minutos</b> entre um envio e outro</div></div>
+      <div style="display:flex;gap:11px;align-items:flex-start"><div style="background:var(--brand-light);color:var(--brand);border-radius:9px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">3</div><div style="font-size:13px;line-height:1.5"><b>Personalize com {apelido}</b> e responda quem te responder</div></div>
+    </div>
+    <div style="background:#FEF2F2;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#991B1B;line-height:1.5;margin-bottom:16px">⚠️ Rajadas de mensagens iguais podem fazer o WhatsApp restringir seu número por 24h ou mais.</div>
+    <button onclick="localStorage.setItem('vistoRegrasEnvio','1');document.getElementById('regras-envio-ov').remove()" style="width:100%;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">Entendi, enviar com segurança ✓</button>
+  </div>`
+  document.body.appendChild(ov)
+}
+
 async function carregarLista(filtro='todos'){
+  mostrarRegrasEnvio()
+  // Banner de boas práticas
+  const avisoEl=document.getElementById('aviso-envio')
+  if(avisoEl)avisoEl.style.display=localStorage.getItem('avisoEnvioOk')?'none':'block'
+  // Contador de envios de hoje
+  const hjL=new Date().toISOString().slice(0,10)
+  const cstL=JSON.parse(localStorage.getItem('enviosDia')||'{}')
+  const elHj=document.getElementById('lista-hoje')
+  if(elHj)elHj.textContent=cstL.d===hjL?cstL.n:0
+
   if(!S.negocio)return
   S._filtroLista=filtro
   let q=sb.from('lista_disparo')
@@ -2111,27 +2142,16 @@ async function enviarLista(itemId,nome,wpp,linkId){
   await abrirEnviar(null,nome,wpp,linkId)
   await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',itemId)
 }
-async function dispararTodos(){
-  const{data}=await sb.from('lista_disparo').select('*,clientes(nome,whatsapp),links_avaliacao(token)').eq('negocio_id',S.negocio.id).eq('status','pendente')
-  if(!data?.length)return showToast('Lista vazia')
-  S._filaDisparo=[...data]
-  S._filaIdx=0
-  dispararProximo()
-}
-async function dispararProximo(){
-  if(!S._filaDisparo||S._filaIdx>=S._filaDisparo.length){
-    showToast('✅ Todos os disparos concluídos!',3500)
-    carregarLista()
-    return
-  }
-  const c=S._filaDisparo[S._filaIdx]
-  const total=S._filaDisparo.length
-  const atual=S._filaIdx+1
-  // Adiciona info de progresso no modal
-  S._itemIdAtual=c.id
-  await abrirEnviar(c.cliente_id,c.clientes?.nome,c.clientes?.whatsapp,c.link_id,atual,total)
-}
 async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
+  // Cooldown: intervalo recomendado de 2 min entre envios (proteção anti-restrição)
+  const ultimoTs=+localStorage.getItem('ultimoEnvioTs')||0
+  const faltaMs=2*60*1000-(Date.now()-ultimoTs)
+  if(faltaMs>0){
+    const seg=Math.ceil(faltaMs/1000)
+    const mm=Math.floor(seg/60),ss=seg%60
+    const txt=(mm?mm+'min ':'')+ss+'s'
+    if(!confirm('⏳ Intervalo de segurança: faltam '+txt+' do tempo recomendado entre envios.\n\nEnviar mensagens em sequência rápida pode fazer o WhatsApp restringir seu número.\n\nEnviar mesmo assim?'))return
+  }
   let token=null
   if(linkId){const{data}=await sb.from('links_avaliacao').select('token').eq('id',linkId).maybeSingle();token=data?.token}
   // Link com nome e tel para pré-preencher tela do cliente
@@ -2143,24 +2163,17 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   }
   const bc=S.bonusConfig,tpl=S.templates['pedido_avaliacao']||'Olá {nome}! Avalie o {empresa}: {link}'
   const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bc?bc.valor_identificado+'%':'bônus',bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
-  document.getElementById('m-enviar-sub').textContent=(atual&&total?`(${atual}/${total}) `:'')+'Para '+nome+' · '+wpp
-  // Botão próximo na fila
-  const btnNext=document.getElementById('m-enviar-next')
-  if(btnNext){
-    if(total>1&&atual<total){
-      btnNext.style.display='flex'
-      btnNext.textContent=`Próximo → (${atual+1}/${total})`
-      btnNext.onclick=async()=>{
-        await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
-        S._filaIdx++
-        closeModalDirect('m-enviar')
-        setTimeout(dispararProximo,500)
-      }
-    }else if(btnNext){btnNext.style.display='none'}
-  }
+  document.getElementById('m-enviar-sub').textContent='Para '+nome+' · '+wpp
   document.getElementById('m-enviar-preview').textContent=msg
   document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
     window.open(linkWpp(wpp,msg),'_blank')
+    // Registra para o cooldown e o contador do dia
+    localStorage.setItem('ultimoEnvioTs',Date.now())
+    const hj=new Date().toISOString().slice(0,10)
+    const cst=JSON.parse(localStorage.getItem('enviosDia')||'{}')
+    localStorage.setItem('enviosDia',JSON.stringify({d:hj,n:(cst.d===hj?cst.n:0)+1}))
+    const elHoje=document.getElementById('lista-hoje')
+    if(elHoje){const c2=JSON.parse(localStorage.getItem('enviosDia'));elHoje.textContent=c2.n}
     if(S._itemIdAtual){
       await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
       S._itemIdAtual=null
@@ -2171,7 +2184,6 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   }
   openModal('m-enviar')
 }
-function confirmarAgendamento(){const d=document.getElementById('ag-data').value;if(!d)return showToast('Selecione data');closeModalDirect('m-agendar');showToast('✅ Agendado para '+d+' às '+document.getElementById('ag-hora').value,3500)}
 
 // ── RESGATAR ──
 async function verificarCodigo(){
