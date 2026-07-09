@@ -105,6 +105,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .bn-label{font-size:9px;font-weight:700}
 @media(max-width:768px){.sidebar{display:none}.main-content{padding:14px 12px 80px}.bottom-nav{display:flex}}
 /* LOGIN */
+body.blur-priv .sensivel{filter:blur(5px);user-select:none}
+.eye-priv{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:5px 10px;font-size:14px;cursor:pointer;line-height:1}
 #screen-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(160deg,#0D0D0F,#1a1025)}
 .login-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:24px;padding:36px 28px;width:100%;max-width:390px;backdrop-filter:blur(20px)}
 .login-logo{text-align:center;margin-bottom:26px}
@@ -530,7 +532,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
           </div>
         </div>
-        <div class="sec-title">Últimas avaliações</div>
+        <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">Últimas avaliações <button class="eye-priv btn-blur-eye" onclick="toggleBlurPriv()" title="Borrar dados sensíveis para prints">👁</button></div>
         <div id="dash-feedbacks"><div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Nenhuma avaliação ainda</div></div>
       </div>
       <!-- CLIENTES -->
@@ -1062,6 +1064,31 @@ function closeModalDirect(id){document.getElementById(id).classList.remove('open
 function ini(n){return(n||'??').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}
 function fmtDate(dt){if(!dt)return'—';return new Date(dt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
 function tempoLista(dt){const d=Date.now()-new Date(dt).getTime(),m=Math.floor(d/60000);if(m<60)return m+'min';const h=Math.floor(m/60);if(h<24)return h+'h';const dy=Math.floor(h/24);if(dy<7)return dy+' dia'+(dy>1?'s':'');return Math.floor(dy/7)+' sem'}
+// ── Modo demonstração: maquia nomes e telefones para prints/vídeos ──
+const NOMES_DEMO=['Ana Souza','Carlos Lima','Marina Alves','João Pedro','Beatriz Rocha','Rafael Costa','Paulo Nunes','Larissa Dias','Bruno Teixeira','Camila Freitas','Diego Martins','Fernanda Luz']
+function hashStr(s){let h=0;for(let i=0;i<(s||'').length;i++){h=(h*31+s.charCodeAt(i))>>>0}return h}
+function demoNome(nome){
+  if(!S.demo||!nome||nome==='—'||nome==='Anônimo')return nome
+  return NOMES_DEMO[hashStr(nome)%NOMES_DEMO.length]
+}
+function demoTel(tel){
+  if(!S.demo||!tel||tel==='—')return tel
+  const h=hashStr(tel)
+  return '(11) 9'+String(1000+h%9000).slice(0,4)+'-'+String(1000+(h>>4)%9000).slice(0,4)
+}
+function toggleDemo(){
+  const novo=localStorage.getItem('demoMode')==='1'?'0':'1'
+  localStorage.setItem('demoMode',novo)
+  showToast(novo==='1'?'🎭 Modo demonstração ATIVADO — dados maquiados':'✅ Modo demonstração desativado')
+  setTimeout(()=>location.reload(),700)
+}
+
+function toggleBlurPriv(){
+  const on=document.body.classList.toggle('blur-priv')
+  document.querySelectorAll('.btn-blur-eye').forEach(b=>b.textContent=on?'🙈':'👁')
+  showToast(on?'🙈 Dados sensíveis borrados — pode tirar o print!':'👁 Dados visíveis novamente')
+}
+
 function montarMsg(tpl,v){if(v&&!v.apelido)v.apelido=v.nome;return(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]||'{'+k+'}')}
 function linkWpp(tel,msg){return'https://wa.me/55'+tel.replace(/\D/g,'')+'?text='+encodeURIComponent(msg)}
 
@@ -1697,7 +1724,8 @@ async function carregarDashboard(){
         </div>
         <span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span>
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">${nome}</div>
+      <div class="sensivel" style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">${nome}</div>
+      ${av.avaliador_whatsapp?`<div class="sensivel" style="font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px">📱 ${av.avaliador_whatsapp}</div>`:''}
       ${itens?`<div class="fi-items-list" style="margin-bottom:4px">${itens}</div>`:''}
       ${comentarioGeral}
     </div>`
@@ -1738,7 +1766,10 @@ function garantirModalAvals(){
     <div class="mhandle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div class="mtitle" id="m-todas-title" style="margin:0">Avaliações</div>
-      <button onclick="document.getElementById('m-todas-avals').classList.remove('open')" style="background:var(--bg);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+      <div style="display:flex;gap:8px">
+        <button class="eye-priv btn-blur-eye" onclick="toggleBlurPriv()" title="Borrar dados sensíveis">👁</button>
+        <button onclick="document.getElementById('m-todas-avals').classList.remove('open')" style="background:var(--bg);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+      </div>
     </div>
     <input type="text" id="f-aval-busca" placeholder="🔍 Buscar por nome ou telefone…" oninput="renderTodasAvals()" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-family:inherit;font-size:13px;outline:none;margin-bottom:8px"/>
     <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -1768,7 +1799,7 @@ function cardAvaliacaoHTML(av){
     return`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span>${com}</div>`
   }).join('')
   const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
-  return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div style="font-size:12px;font-weight:700;margin-bottom:5px">${nome}</div>${itens?`<div>${itens}</div>`:''} ${com}</div>`
+  return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div class="sensivel" style="font-size:12px;font-weight:700;margin-bottom:2px">${nome}</div>${av.avaliador_whatsapp?`<div class="sensivel" style="font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">📱 ${av.avaliador_whatsapp}</div>`:'<div style="margin-bottom:4px"></div>'}${itens?`<div>${itens}</div>`:''} ${com}</div>`
 }
 
 function renderTodasAvals(){
@@ -2462,7 +2493,11 @@ async function initAvaliar(slug,token){
     const telParam=urlParams.get('tel')
     if(nomeParam){
       const nomeInp=document.getElementById('av-id-nome')
-      if(nomeInp)nomeInp.value=decodeURIComponent(nomeParam)
+      if(nomeInp){
+        nomeInp.value=decodeURIComponent(nomeParam)
+        nomeInp.readOnly=true
+        nomeInp.style.cssText+=';background:rgba(255,255,255,.55);color:#78350F;cursor:not-allowed'
+      }
     }
     if(telParam){
       const telInp=document.getElementById('av-id-tel')
@@ -2470,7 +2505,18 @@ async function initAvaliar(slug,token){
       const telFormatado=telLimpo.length===11
         ? telLimpo.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3')
         : telLimpo
-      if(telInp)telInp.value=telFormatado
+      if(telInp){
+        telInp.value=telFormatado
+        telInp.readOnly=true
+        telInp.style.cssText+=';background:rgba(255,255,255,.55);color:#78350F;cursor:not-allowed'
+      }
+    }
+    if(nomeParam||telParam){
+      const idCard=document.getElementById('av-id-tel')?.closest('div')
+      const hintTravado=document.createElement('div')
+      hintTravado.style.cssText='font-size:10.5px;color:#92400E;margin-top:6px;text-align:center'
+      hintTravado.textContent='🔒 Dados preenchidos pelo estabelecimento. Não quer se identificar? Use o botão no topo do card.'
+      document.getElementById('av-id-tel')?.insertAdjacentElement('afterend',hintTravado)
     }
   } catch(err){
     console.error('Erro initAvaliar:',err)
