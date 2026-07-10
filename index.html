@@ -580,6 +580,7 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
         </div>
 
         <!-- Filtros -->
+        <div style="margin-bottom:10px"><input type="text" id="lista-busca-itens" placeholder="🔍 Buscar na lista por nome ou telefone…" oninput="buscarNaLista()" style="width:100%;border:1.5px solid var(--border);border-radius:11px;padding:11px 14px;font-family:inherit;font-size:13px;outline:none;background:#fff"/></div>
         <div id="aviso-envio" style="display:none;background:#FFF7E6;border:1px solid #F0D48A;border-radius:12px;padding:11px 14px;margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
             <div style="font-size:11.5px;color:#78350F;line-height:1.55">📲 <b>Envio seguro:</b> mande um por um, logo após o atendimento · aguarde 2-5 min entre envios · personalize com {apelido}. Rajadas podem restringir seu WhatsApp.</div>
@@ -1989,7 +1990,10 @@ async function salvarCliente(){
     error=res.error
   }
   setLoading(false)
-  if(error)return showToast('❌ '+error.message)
+  if(error){
+    if(/duplicate|uniq/i.test(error.message||''))return showToast('⚠️ Já existe um cliente cadastrado com esse WhatsApp')
+    return showToast('❌ '+error.message)
+  }
   closeModalDirect('m-novo-cliente')
   showToast(editId?'✅ Cliente atualizado!':'✅ Cliente salvo!')
   carregarClientes()
@@ -2068,7 +2072,13 @@ async function carregarLista(filtro='todos'){
   const avalEl=document.getElementById('lista-stat-aval')
   if(avalEl)avalEl.textContent=aval
   document.getElementById('lista-count').textContent=lista.length+' registro'+(lista.length!==1?'s':'')
+  S._listaFull=lista
+  S._listaFiltro=filtro
   renderLista(lista,filtro)
+}
+
+function buscarNaLista(){
+  renderLista(S._listaFull||[],S._listaFiltro||'todos')
 }
 function filtrarLista(filtro){
   ;['todos','pendente','enviado','avaliado'].forEach(f=>{
@@ -2079,9 +2089,20 @@ function filtrarLista(filtro){
 }
 function renderLista(lista,filtro){
   const el=document.getElementById('lista-disparo-items')
+  // Aplica a busca por nome, apelido ou telefone
+  const termo=(document.getElementById('lista-busca-itens')?.value||'').toLowerCase().trim()
+  if(termo){
+    const tNum=termo.replace(/\D/g,'')
+    lista=lista.filter(it=>{
+      const n=(it.clientes?.nome||'').toLowerCase()
+      const a=(it.clientes?.apelido||'').toLowerCase()
+      const w=it.clientes?.whatsapp||''
+      return n.includes(termo)||a.includes(termo)||(tNum&&w.includes(tNum))
+    })
+  }
   if(!lista.length){
     const msgs={todos:'Lista vazia',pendente:'Nenhum aguardando',enviado:'Nenhum enviado',avaliado:'Nenhum avaliado'}
-    el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">${msgs[filtro]||'Lista vazia'}</div>`
+    el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">${termo?'🔍 Nada encontrado para "'+termo+'"':(msgs[filtro]||'Lista vazia')}</div>`
     return
   }
   el.innerHTML=lista.map(it=>{
@@ -2131,9 +2152,12 @@ async function novoClienteNaLista(){
 async function adicionarLista(cId){
   setLoading(true)
   const{data:link}=await sb.from('links_avaliacao').insert({negocio_id:S.negocio.id,cliente_id:cId}).select().single()
-  const{error}=await sb.from('lista_disparo').upsert({negocio_id:S.negocio.id,cliente_id:cId,link_id:link?.id||null,status:'pendente'},{onConflict:'negocio_id,cliente_id,status',ignoreDuplicates:true})
+  const{error}=await sb.from('lista_disparo').insert({negocio_id:S.negocio.id,cliente_id:cId,link_id:link?.id||null,status:'pendente'})
   setLoading(false)
-  if(error)return showToast('❌ '+error.message)
+  if(error){
+    if(/duplicate|uniq/i.test(error.message||''))return showToast('⚠️ Este cliente já está na fila de envio')
+    return showToast('❌ Não foi possível adicionar: '+error.message)
+  }
   document.getElementById('busca-lista').value='';document.getElementById('lista-busca-results').innerHTML=''
   showToast('✅ Adicionado!');carregarLista()
 }
@@ -2449,6 +2473,7 @@ async function initAvaliar(slug,token){
         // Posição desta avaliação dentro do ciclo (reinicia após cada bônus)
         const atual=((qtdAnt||0)%total)+1
         const progressEl=document.createElement('div')
+        progressEl.id='pre-progress-banner'
         progressEl.style.cssText='background:linear-gradient(135deg,var(--brand),#A78BFA);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:#fff;text-align:center'
         if(atual<total){
           progressEl.innerHTML=`
@@ -2548,6 +2573,25 @@ function toggleSkipId(){
   document.querySelector('.btn-submit-eval').textContent=isOn?'Enviar avaliação':'Enviar avaliação e receber bônus 🎁'
   const tl=document.getElementById('ciclo-timeline')
   if(tl&&tl.innerHTML)tl.style.display=isOn?'none':'block'
+  // Banner de progresso e cards de gamificação são exclusivos de quem se identifica
+  const preB=document.getElementById('pre-progress-banner')
+  if(preB)preB.style.display=isOn?'none':'block'
+  const gamW=document.getElementById('gam-cards-wrap')
+  if(gamW)gamW.style.display=isOn?'none':'block'
+  // Aviso: por que os bônus sumiram
+  let avAn=document.getElementById('anon-aviso')
+  if(isOn){
+    if(!avAn){
+      avAn=document.createElement('div')
+      avAn.id='anon-aviso'
+      avAn.style.cssText='background:rgba(255,255,255,.6);border:1.5px dashed #D97706;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:12px;color:#92400E;line-height:1.55;text-align:center'
+      avAn.innerHTML='🎁 <b>Bônus, selos e descontos são exclusivos para quem se identifica.</b><br/>Desmarque a opção acima para ganhar suas recompensas.'
+      document.getElementById('id-card-content').insertAdjacentElement('beforebegin',avAn)
+    }
+    avAn.style.display='block'
+  } else if(avAn){
+    avAn.style.display='none'
+  }
 }
 
 async function enviarAvaliacao(){
@@ -2702,7 +2746,7 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
   }
   
   hero.style.background=identificado?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,var(--brand),#A78BFA)'
-  hero.innerHTML=`<div class="suc-icon">🎉</div><div class="suc-title">${identificado?'Obrigado, '+nome+'!':'Obrigado!'}</div><div class="suc-sub">${identificado?'Seu código chegou no WhatsApp!':'Salve seu código agora.'}</div>`
+  hero.innerHTML=`<div class="suc-icon">${codigo?'🎉':'💜'}</div><div class="suc-title">${identificado?'Obrigado, '+nome+'!':'Obrigado!'}</div><div class="suc-sub">${codigo?'Salve seu código agora.':'Sua opinião ajuda muito!'}</div>`
   // Esconde seção de código se não gerou
   const codigoSection=document.querySelector('.suc-wrap .card:first-child')
   if(codigo){
