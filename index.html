@@ -2543,12 +2543,11 @@ function toggleSkipId(){
   const content=document.getElementById('id-card-content')
   const isOn=t.classList.toggle('on')
   avS.identificado=!isOn
+  // Só esconde: os valores (inclusive pré-preenchidos) são preservados para quando desmarcar
   content.style.display=isOn?'none':'block'
   document.querySelector('.btn-submit-eval').textContent=isOn?'Enviar avaliação':'Enviar avaliação e receber bônus 🎁'
-  if(isOn){
-    document.getElementById('av-id-nome').value=''
-    document.getElementById('av-id-tel').value=''
-  }
+  const tl=document.getElementById('ciclo-timeline')
+  if(tl&&tl.innerHTML)tl.style.display=isOn?'none':'block'
 }
 
 async function enviarAvaliacao(){
@@ -2566,7 +2565,7 @@ async function enviarAvaliacao(){
   setLoading(true)
   try{
     let cId=null
-    if(nomeId&&telId){
+    if(avS.identificado&&nomeId&&telId){
       const wppLimpo=telId.replace(/\D/g,'')
       // Busca via função segura; se não existe, cadastra
       const{data:idExistente}=await sb.rpc('buscar_cliente_id',{p_negocio_id:avS.negocio.id,p_whatsapp:wppLimpo})
@@ -2581,7 +2580,7 @@ async function enviarAvaliacao(){
     let linkId=null
     if(avS.token){const{data}=await sb.from('links_avaliacao').select('id').eq('token',avS.token).maybeSingle();linkId=data?.id}
     const avId=crypto.randomUUID()
-    const{error:errAv}=await sb.from('avaliacoes').insert({id:avId,negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:nomeId||null,avaliador_whatsapp:telId||null})
+    const{error:errAv}=await sb.from('avaliacoes').insert({id:avId,negocio_id:avS.negocio.id,link_id:linkId,cliente_id:cId,identificado:!!temId,avaliador_nome:temId?nomeId:null,avaliador_whatsapp:temId?telId:null})
     if(errAv)throw errAv
     const av={id:avId}
     // Marca o link como usado
