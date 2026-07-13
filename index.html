@@ -429,7 +429,7 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
         <div class="bcfg-t">🎁 Configurar bônus</div>
         <div class="bcfg-s">Defina o prêmio para quem avalia.</div>
         <div class="field"><label style="color:#92400E">Tipo de bônus</label>
-          <select id="bonus-tipo"><option value="percentual">% de desconto</option><option value="valor_fixo">Valor fixo</option><option value="servico_gratis">Serviço grátis</option><option value="personalizado">Personalizado</option></select>
+          <select id="bonus-tipo"><option value="percentual">% de desconto</option><option value="valor_fixo">Valor fixo</option><option value="servico_gratis">Serviço grátis</option><option value="personalizado">Personalizado</option><option value="sorteio">🎟️ Sorteio</option></select>
         </div>
         <div class="field" style="margin-top:10px;margin-bottom:0">
           <label style="color:#92400E">Percentual de desconto (%)</label>
@@ -629,6 +629,41 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             <div class="vc-top"><div class="vc-icon">❌</div><div><div class="vc-title" style="color:var(--rd)">Código inválido</div><div class="vc-sub">Não encontrado ou expirado</div></div></div>
           </div>
         </div>
+
+        <!-- ══ PAINEL DO SORTEIO ══ -->
+        <div id="painel-sorteio" style="display:none;margin-top:20px">
+          <div class="sec-title">🎟️ Sorteio</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+            <div class="card" style="text-align:center;padding:13px 6px;margin:0"><div style="font-size:19px;font-weight:800;color:var(--brand)" id="srt-nums">0</div><div style="font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase">Números</div></div>
+            <div class="card" style="text-align:center;padding:13px 6px;margin:0"><div style="font-size:19px;font-weight:800;color:var(--brand)" id="srt-parts">0</div><div style="font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase">Participantes</div></div>
+            <div class="card" style="text-align:center;padding:13px 6px;margin:0"><div style="font-size:13px;font-weight:800;color:var(--gold);padding-top:4px" id="srt-freq">semanal</div><div style="font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase">Frequência</div></div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#1a0533,#2d0d5e);border-radius:16px;padding:24px 18px;text-align:center;color:#fff;margin-bottom:12px">
+            <div style="font-size:12px;font-weight:700;opacity:.7" id="srt-premio-lbl">🏆 PRÊMIO</div>
+            <div style="font-size:22px;font-weight:800;min-height:30px;margin:10px 0 4px" id="srt-rol-nome">?</div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--gd);min-height:18px" id="srt-rol-cod">— toque para sortear —</div>
+            <button class="btn btn-full" style="background:var(--gd);color:#241052;margin-top:14px;border:none;border-radius:12px;padding:13px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer" onclick="realizarSorteio()" id="btn-sortear">🎲 Realizar sorteio agora</button>
+          </div>
+
+          <div id="srt-win" style="display:none;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border-radius:16px;padding:22px 18px;text-align:center;margin-bottom:12px">
+            <div style="font-size:34px">🎊</div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:.08em;opacity:.85">GANHADOR DO SORTEIO</div>
+            <div style="font-size:22px;font-weight:800;margin:4px 0" id="srt-win-nome"></div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px" id="srt-win-cod"></div>
+            <button class="btn btn-full" style="background:#fff;color:#166534;margin-top:14px;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer" id="srt-win-wpp">📲 Avisar no WhatsApp</button>
+          </div>
+
+          <div class="card">
+            <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Números deste período</div>
+            <div id="srt-lista"></div>
+          </div>
+
+          <div class="card" id="srt-hist-card" style="display:none">
+            <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Sorteios anteriores</div>
+            <div id="srt-hist"></div>
+          </div>
+        </div>
       </div>
       <!-- CONFIG -->
       <div id="page-config" class="hidden">
@@ -660,6 +695,21 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             <label style="color:#92400E" id="cfg-bonus-valor-lbl">Percentual de desconto (%)</label>
             <input type="number" id="cfg-bonus-id" value="15"/>
             <div style="font-size:11px;color:#78350F;margin-top:5px">Dado apenas para clientes identificados (nome + WhatsApp)</div>
+          </div>
+          <div id="cfg-sorteio-wrap" style="display:none;margin-top:10px">
+            <div style="background:var(--brand-light);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--brand);line-height:1.5;margin-bottom:10px">🎟️ <b>Cada avaliação identificada gera 1 número da sorte.</b> Quanto mais o cliente avalia, mais chances no sorteio.</div>
+            <div class="field"><label style="color:#92400E">Prêmio do sorteio</label><input type="text" id="cfg-sorteio-premio" placeholder="Ex: 1 lavagem completa + cera grátis" maxlength="80"/></div>
+            <div class="field"><label style="color:#92400E">Frequência do sorteio</label>
+              <select id="cfg-sorteio-freq"><option value="semanal">Semanal</option><option value="quinzenal">Quinzenal</option><option value="mensal">Mensal</option></select>
+            </div>
+            <div class="bcfg-toggle" style="margin-bottom:8px">
+              <div><div class="tt">Zerar números a cada sorteio</div><div class="ts">Desligado: os números acumulam para sempre</div></div>
+              <div class="amber-toggle on" id="cfg-sorteio-zerar" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="bcfg-toggle">
+              <div><div class="tt">Ganhador sai dos próximos sorteios</div><div class="ts">Por 30 dias, para dar chance aos outros</div></div>
+              <div class="amber-toggle" id="cfg-sorteio-excluir" onclick="this.classList.toggle('on')"></div>
+            </div>
           </div>
           <div class="field" style="margin-top:10px;margin-bottom:4px;display:none" id="cfg-bonus-desc-wrap">
             <label style="color:#92400E">Descreva o bônus</label>
@@ -1003,9 +1053,13 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
 <div id="screen-aguardando" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
   <div style="background:#fff;border-radius:24px;padding:40px 28px;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow)">
     <div style="font-size:56px;margin-bottom:16px">⏳</div>
-    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Cadastro em análise</div>
-    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px">Seu cadastro foi recebido e está aguardando aprovação. Você receberá um email quando for aprovado.</div>
-    <div style="background:var(--brand-light);border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;color:var(--brand);font-weight:600">📧 Verifique seu email para atualizações</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Quase lá!</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:18px">Seu acesso ainda não está liberado.</div>
+    <div style="background:var(--brand-light);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:13px;color:var(--brand);text-align:left;line-height:1.6">
+      <b>🛒 Já assinou na Hotmart?</b><br/>O acesso libera na hora se você usar <b>o mesmo e-mail da compra</b>. Comprou com outro e-mail? Cadastre-se de novo com ele ou toque abaixo:
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="verificarCompra()">🔄 Já comprei — verificar acesso</button>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Ainda não assinou? <a href="/avalia-landing.html" style="color:var(--brand);font-weight:700">Conheça os planos</a></div>
     <button class="btn btn-danger btn-full" onclick="fazerLogout()">🚪 Sair</button>
   </div>
 </div>
@@ -1060,30 +1114,17 @@ function closeModalDirect(id){document.getElementById(id).classList.remove('open
 function ini(n){return(n||'??').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}
 function fmtDate(dt){if(!dt)return'—';return new Date(dt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
 function tempoLista(dt){const d=Date.now()-new Date(dt).getTime(),m=Math.floor(d/60000);if(m<60)return m+'min';const h=Math.floor(m/60);if(h<24)return h+'h';const dy=Math.floor(h/24);if(dy<7)return dy+' dia'+(dy>1?'s':'');return Math.floor(dy/7)+' sem'}
-// ── Modo demonstração: maquia nomes e telefones para prints/vídeos ──
-const NOMES_DEMO=['Ana Souza','Carlos Lima','Marina Alves','João Pedro','Beatriz Rocha','Rafael Costa','Paulo Nunes','Larissa Dias','Bruno Teixeira','Camila Freitas','Diego Martins','Fernanda Luz']
-function hashStr(s){let h=0;for(let i=0;i<(s||'').length;i++){h=(h*31+s.charCodeAt(i))>>>0}return h}
-function demoNome(nome){
-  if(!S.demo||!nome||nome==='—'||nome==='Anônimo')return nome
-  return NOMES_DEMO[hashStr(nome)%NOMES_DEMO.length]
-}
-function demoTel(tel){
-  if(!S.demo||!tel||tel==='—')return tel
-  const h=hashStr(tel)
-  return '(11) 9'+String(1000+h%9000).slice(0,4)+'-'+String(1000+(h>>4)%9000).slice(0,4)
-}
-function toggleDemo(){
-  const novo=localStorage.getItem('demoMode')==='1'?'0':'1'
-  localStorage.setItem('demoMode',novo)
-  showToast(novo==='1'?'🎭 Modo demonstração ATIVADO — dados maquiados':'✅ Modo demonstração desativado')
-  setTimeout(()=>location.reload(),700)
-}
 
 function toggleBlurPriv(){
   const on=document.body.classList.toggle('blur-priv')
   document.querySelectorAll('.btn-blur-eye').forEach(b=>b.textContent=on?'🙈':'👁')
   showToast(on?'🙈 Dados sensíveis borrados — pode tirar o print!':'👁 Dados visíveis novamente')
 }
+
+// Escape de HTML (previne XSS em comentários/nomes vindos do público)
+function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+// Escape para strings JS dentro de atributos onclick (nomes com apóstrofo)
+function escJs(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,'\\u0027').replace(/"/g,'&quot;').replace(/</g,'\\u003C')}
 
 function montarMsg(tpl,v){if(v&&!v.apelido)v.apelido=v.nome;return(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]||'{'+k+'}')}
 function linkWpp(tel,msg){return'https://wa.me/55'+tel.replace(/\D/g,'')+'?text='+encodeURIComponent(msg)}
@@ -1125,6 +1166,19 @@ async function initApp(){
   })
 }
 
+async function verificarCompra(){
+  setLoading(true)
+  const{data,error}=await sb.rpc('verificar_compra')
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  if(data?.ok){
+    showToast('🎉 Compra encontrada! Bem-vindo!')
+    await carregarNegocio()
+  } else {
+    showToast('Nenhuma compra ativa encontrada para este e-mail. Confira o e-mail usado na Hotmart.',4000)
+  }
+}
+
 async function carregarNegocio(){
   setLoading(true)
 
@@ -1137,10 +1191,19 @@ async function carregarNegocio(){
   }
 
   // Verifica aprovação
-  const{data:pCheck}=await sb.from('perfis').select('aprovado,plano').eq('id',S.user.id).maybeSingle()
+  const{data:pCheck}=await sb.from('perfis').select('aprovado,plano,plano_expira_em').eq('id',S.user.id).maybeSingle()
   S.plano=pCheck?.plano||'basico'
+  S.planoExpira=pCheck?.plano_expira_em||null
   if(pCheck&&pCheck.aprovado===false){
     showScreen('screen-aguardando')
+    setLoading(false)
+    return
+  }
+  // Assinatura expirada → mesma tela de espera (o botão verificar renova se houver pagamento novo)
+  if(S.user.email!==ADMIN_EMAIL&&pCheck?.plano_expira_em&&new Date(pCheck.plano_expira_em)<new Date()){
+    showScreen('screen-aguardando')
+    const tituloExp=document.querySelector('#screen-aguardando div[style*="font-size:20px"]')
+    if(tituloExp)tituloExp.textContent='Assinatura expirada'
     setLoading(false)
     return
   }
@@ -1405,13 +1468,6 @@ async function salvarStreak(){
 }
 
 // ══ GAMIFICAÇÃO NA TELA DO CLIENTE ══
-async function carregarGamificacaoCliente(negocioId, clienteId){
-  const[{data:gc},{data:prog}]=await Promise.all([
-    sb.from('gamificacao_config').select('*').eq('negocio_id',negocioId).maybeSingle(),
-    clienteId ? sb.from('gamificacao_cliente').select('*').eq('negocio_id',negocioId).eq('cliente_id',clienteId).maybeSingle() : Promise.resolve({data:null})
-  ])
-  return{gc,prog}
-}
 
 async function atualizarProgressoCliente(negocioId, clienteId, gc){
   if(!clienteId) return
@@ -1652,6 +1708,93 @@ function navTo(page){
   if(page==='clientes')carregarClientes()
   if(page==='lista')carregarLista()
   if(page==='config')carregarConfig()
+  if(page==='resgatar')carregarSorteio()
+}
+
+// ── SORTEIO (painel do dono) ──
+async function carregarSorteio(){
+  const painel=document.getElementById('painel-sorteio')
+  if(!painel||!S.negocio)return
+  const bc=S.bonusConfig||(await sb.from('bonus_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle()).data
+  if(!bc||bc.tipo!=='sorteio'){painel.style.display='none';return}
+  painel.style.display='block'
+  document.getElementById('srt-freq').textContent=bc.sorteio_frequencia||'semanal'
+  document.getElementById('srt-premio-lbl').textContent='🏆 PRÊMIO: '+(bc.sorteio_premio||'defina em Config').toUpperCase()
+
+  const{data:nums}=await sb.from('codigos_bonus')
+    .select('codigo,cliente_id,criado_em,clientes(nome)')
+    .eq('negocio_id',S.negocio.id).eq('tipo','sorteio').is('sorteio_id',null)
+    .order('criado_em',{ascending:false})
+  S._srtNums=nums||[]
+  document.getElementById('srt-nums').textContent=S._srtNums.length
+  document.getElementById('srt-parts').textContent=new Set(S._srtNums.map(n=>n.cliente_id)).size
+  const lst=document.getElementById('srt-lista')
+  if(!S._srtNums.length){
+    lst.innerHTML='<div style="text-align:center;padding:14px;color:var(--muted);font-size:12.5px">Nenhum número ainda — cada avaliação identificada gera um 🎟️</div>'
+  } else {
+    lst.innerHTML=S._srtNums.slice(0,30).map(n=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">${escHtml((n.clientes?.nome||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase())}</div>
+      <div style="flex:1;font-size:13px;font-weight:700">${escHtml(n.clientes?.nome||'Cliente')}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold)">${n.codigo}</div>
+    </div>`).join('')+(S._srtNums.length>30?`<div style="text-align:center;font-size:11px;color:var(--muted);padding-top:8px">… e mais ${S._srtNums.length-30} números</div>`:'')
+  }
+
+  const{data:hist}=await sb.from('sorteios').select('*').eq('negocio_id',S.negocio.id).order('realizado_em',{ascending:false}).limit(5)
+  const hc=document.getElementById('srt-hist-card')
+  if(hist?.length){
+    hc.style.display='block'
+    document.getElementById('srt-hist').innerHTML=hist.map(h=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+      <div><b>${new Date(h.realizado_em).toLocaleDateString('pt-BR')}</b> · ${escHtml(h.ganhador_nome||'—')} · <span style="font-family:'DM Mono',monospace;color:var(--gold);font-size:11px">${h.codigo_vencedor||''}</span></div>
+      ${h.entregue?'<span style="background:#DCFCE7;color:#166534;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800">✓ Entregue</span>':`<button onclick="marcarEntregue('${h.id}')" style="background:#FEF3C7;color:#92400E;border:none;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;font-family:inherit">Marcar entregue</button>`}
+    </div>`).join('')
+  } else {hc.style.display='none'}
+}
+
+async function realizarSorteio(){
+  if(!S._srtNums?.length)return showToast('Nenhum número para sortear ainda')
+  if(!confirm('🎲 Realizar o sorteio agora entre '+S._srtNums.length+' números?'))return
+  const btn=document.getElementById('btn-sortear')
+  btn.disabled=true;btn.textContent='🎲 Sorteando…'
+  document.getElementById('srt-win').style.display='none'
+  // Sorteio real no servidor (aleatório justo)
+  const{data,error}=await sb.rpc('realizar_sorteio',{p_negocio_id:S.negocio.id})
+  if(error||!data?.ok){
+    btn.disabled=false;btn.textContent='🎲 Realizar sorteio agora'
+    return showToast('❌ '+(error?.message||data?.erro||'Erro no sorteio'))
+  }
+  // Animação de roleta com os nomes reais, terminando no vencedor do servidor
+  const nomeEl=document.getElementById('srt-rol-nome'),codEl=document.getElementById('srt-rol-cod')
+  let i=0,vel=60
+  function gira(){
+    const p=S._srtNums[i%S._srtNums.length]
+    nomeEl.textContent=p.clientes?.nome||'Cliente'
+    codEl.textContent=p.codigo
+    i++;vel*=1.14
+    if(vel<650){setTimeout(gira,vel)}
+    else{
+      nomeEl.textContent='🎊 '+(data.nome||'Cliente')
+      codEl.textContent=data.codigo
+      document.getElementById('srt-win-nome').textContent=data.nome||'Cliente'
+      document.getElementById('srt-win-cod').textContent=data.codigo
+      const wb=document.getElementById('srt-win-wpp')
+      wb.onclick=()=>{
+        const msg='🎊 PARABÉNS '+(data.nome||'').split(' ')[0].toUpperCase()+'! Seu número '+data.codigo+' foi o GANHADOR do nosso sorteio! 🏆 Prêmio: '+(data.premio||'')+'. Fale com a gente para combinar a retirada! 🎉'
+        if(data.whatsapp)window.open(linkWpp(data.whatsapp,msg),'_blank')
+        else showToast('Cliente sem WhatsApp cadastrado')
+      }
+      document.getElementById('srt-win').style.display='block'
+      btn.disabled=false;btn.textContent='🎲 Realizar sorteio agora'
+      showToast('🎊 Sorteio realizado com '+data.total+' números!')
+      setTimeout(carregarSorteio,1200)
+    }
+  }
+  gira()
+}
+
+async function marcarEntregue(id){
+  await sb.from('sorteios').update({entregue:true}).eq('id',id)
+  showToast('✅ Prêmio marcado como entregue')
+  carregarSorteio()
 }
 
 // ── DASHBOARD ──
@@ -1696,7 +1839,13 @@ async function carregarDashboard(){
   }catch(e){console.log('QR error:',e)}
   // Badge de plano
   const planoBadge=document.getElementById('user-plano-badge')
-  if(planoBadge)planoBadge.textContent='PLANO '+(S.plano||'basico').toUpperCase()
+  if(planoBadge){
+    if(S.plano==='assinante'&&S.planoExpira){
+      planoBadge.textContent='✓ ASSINANTE · até '+new Date(S.planoExpira).toLocaleDateString('pt-BR')
+    } else {
+      planoBadge.textContent='PLANO '+(S.plano||'basico').toUpperCase()
+    }
+  }
 
   renderInsights(contagem,mi)
 
@@ -1706,12 +1855,12 @@ async function carregarDashboard(){
   S._totalAvals=totalAvals||0
   fEl.innerHTML=feeds.map(av=>{
     const n=Math.round(av.nota_geral||0),bom=n>=4
-    const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
+    const nome=escHtml(av.avaliador_nome||av.clientes?.nome||'Anônimo')
     const itens=(av.avaliacao_itens||[]).map(ai=>{
-      const comentarioItem=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;padding-left:4px">"${ai.comentario}"</div>`:''
+      const comentarioItem=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;padding-left:4px">"${escHtml(ai.comentario)}"</div>`:''
       return`<div class="fi-item-r" style="flex-direction:column;align-items:flex-start;gap:1px;padding:4px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;justify-content:space-between;width:100%"><span class="fi-item-n">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span></div>${comentarioItem}</div>`
     }).join('')
-    const comentarioGeral=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:var(--text);line-height:1.5;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
+    const comentarioGeral=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:var(--text);line-height:1.5;border-left:3px solid var(--brand)">💬 "${escHtml(av.comentario)}"</div>`:''
     return`<div class="fi">
       <div class="fi-top">
         <div style="display:flex;align-items:center;gap:6px">
@@ -1789,12 +1938,12 @@ function garantirModalAvals(){
 
 function cardAvaliacaoHTML(av){
   const n=Math.round(av.nota_geral||0)
-  const nome=av.avaliador_nome||av.clientes?.nome||'Anônimo'
+  const nome=escHtml(av.avaliador_nome||av.clientes?.nome||'Anônimo')
   const itens=(av.avaliacao_itens||[]).map(ai=>{
-    const com=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;width:100%">"${ai.comentario}"</div>`:''
+    const com=ai.comentario?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;width:100%">"${escHtml(ai.comentario)}"</div>`:''
     return`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span>${com}</div>`
   }).join('')
-  const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${av.comentario}"</div>`:''
+  const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${escHtml(av.comentario)}"</div>`:''
   return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div class="sensivel" style="font-size:12px;font-weight:700;margin-bottom:2px">${nome}</div>${av.avaliador_whatsapp?`<div class="sensivel" style="font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">📱 ${av.avaliador_whatsapp}</div>`:'<div style="margin-bottom:4px"></div>'}${itens?`<div>${itens}</div>`:''} ${com}</div>`
 }
 
@@ -1940,9 +2089,16 @@ async function carregarClientes(busca=''){
   const{data}=await q
   const el=document.getElementById('lista-clientes')
   if(!data?.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum cliente</div>';return}
-  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${c.nome}${c.apelido?` <span style="font-weight:400;color:var(--muted);font-size:11px">"${c.apelido}"</span>`:''}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${c.apelido||c.nome}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost" onclick="editarCliente('${c.id}','${c.nome}','${c.whatsapp}','${c.email||''}','${c.cpf||''}','${c.logradouro||''}','${c.numero||''}','${c.bairro||''}','${c.cep||''}','${c.cidade||''}','${c.uf||''}','${c.apelido||''}')">✏️</button></div></div>`).join('')
+  S._cliCache=data
+  el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${escHtml(c.nome)}${c.apelido?` <span style="font-weight:400;color:var(--muted);font-size:11px">"${escHtml(c.apelido)}"</span>`:''}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${escJs(c.apelido||c.nome)}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost" onclick="editarClientePorId('${c.id}')">✏️</button></div></div>`).join('')
 }
 function buscarClientes(v){carregarClientes(v)}
+function editarClientePorId(id){
+  const c=(S._cliCache||[]).find(x=>x.id===id)
+  if(!c)return showToast('Cliente não encontrado — recarregue a página')
+  editarCliente(c.id,c.nome,c.whatsapp,c.email||'',c.cpf||'',c.logradouro||'',c.numero||'',c.bairro||'',c.cep||'',c.cidade||'',c.uf||'',c.apelido||'')
+}
+
 function editarCliente(id,nome,whatsapp,email,cpf,rua,num,bairro,cep,cidade,uf,apelido){
   // Preenche o modal com dados do cliente
   document.getElementById('nc-nome').value=nome||''
@@ -2106,19 +2262,20 @@ function renderLista(lista,filtro){
     return
   }
   el.innerHTML=lista.map(it=>{
-    const nome=it.clientes?.apelido||it.clientes?.nome||'—'
+    const nomeRaw=it.clientes?.apelido||it.clientes?.nome||'—'
+    const nome=escHtml(nomeRaw)
     const wpp=it.clientes?.whatsapp||'—'
     const urgente=it.status==='pendente'&&new Date(it.adicionado_em)<new Date(Date.now()-7*24*60*60*1000)
     let badge='',acoes=''
     if(it.status==='pendente'){
       badge=`<span class="badge ${urgente?'br':'by'}" style="margin-top:3px">${urgente?'⚠️ Há muito tempo':'⏳ Aguardando'}</span>`
-      acoes=`<button class="btn btn-green" style="font-size:11px" onclick="enviarLista('${it.id}','${nome}','${wpp}','${it.link_id||''}')">📲</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
+      acoes=`<button class="btn btn-green" style="font-size:11px" onclick="enviarLista('${it.id}','${escJs(nomeRaw)}','${wpp}','${it.link_id||''}')">📲</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
     }else if(it.status==='enviado'){
       badge=`<span class="badge bp" style="margin-top:3px">📤 Enviado${it.enviado_em?' '+tempoLista(it.enviado_em)+' atrás':''} — aguardando avaliação</span>`
-      acoes=`<button class="btn btn-ghost" style="font-size:11px" title="Reenviar" onclick="enviarLista('${it.id}','${nome}','${wpp}','${it.link_id||''}')">🔁</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
+      acoes=`<button class="btn btn-ghost" style="font-size:11px" title="Reenviar" onclick="enviarLista('${it.id}','${escJs(nomeRaw)}','${wpp}','${it.link_id||''}')">🔁</button><button class="btn btn-danger" style="font-size:11px" onclick="removerLista('${it.id}')">✕</button>`
     }else if(it.status==='avaliado'){
       badge=`<span class="badge bg" style="margin-top:3px">⭐ Avaliado</span>`
-      acoes=`<button class="btn btn-ghost" style="font-size:11px" onclick="verAvaliacaoCliente('${it.cliente_id||''}','${it.link_id||''}','${nome}')">👁 Ver</button>`
+      acoes=`<button class="btn btn-ghost" style="font-size:11px" onclick="verAvaliacaoCliente('${it.cliente_id||''}','${it.link_id||''}','${escJs(nomeRaw)}')">👁 Ver</button>`
     }
     return `<div class="list-item"><div class="li-av">${ini(nome)}</div><div class="li-info"><div class="li-name">${nome}</div><div class="li-phone">${wpp}</div><div class="li-time">⏱ Adicionado há <span>${tempoLista(it.adicionado_em)}</span></div>${badge}</div><div class="li-acts">${acoes}</div></div>`
   }).join('')
@@ -2130,7 +2287,7 @@ async function buscarParaLista(busca){
   const{data}=await sb.from('clientes').select('id,nome,whatsapp').eq('negocio_id',S.negocio.id).or(`nome.ilike.%${busca}%,whatsapp.ilike.%${busca}%`).limit(5)
   const el=document.getElementById('lista-busca-results')
   if(!data?.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:5px 0">Nenhum cliente encontrado</div>';return}
-  el.innerHTML=data.map(c=>`<div class="search-result-item" style="padding:12px 14px;margin-bottom:7px;border:1px solid var(--border)"><div class="li-av" style="width:38px;height:38px;font-size:13px">${ini(c.nome)}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${c.nome}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${c.whatsapp}</div></div><button class="btn btn-primary" style="padding:10px 16px;font-size:13px" onclick="adicionarLista('${c.id}')">+ Adicionar</button></div>`).join('')
+  el.innerHTML=data.map(c=>`<div class="search-result-item" style="padding:12px 14px;margin-bottom:7px;border:1px solid var(--border)"><div class="li-av" style="width:38px;height:38px;font-size:13px">${ini(c.nome)}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${escHtml(c.nome)}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${c.whatsapp}</div></div><button class="btn btn-primary" style="padding:10px 16px;font-size:13px" onclick="adicionarLista('${c.id}')">+ Adicionar</button></div>`).join('')
 }
 function abrirNovoNaLista(){
   const busca=(document.getElementById('busca-lista')?.value||'').trim()
@@ -2275,6 +2432,10 @@ async function carregarConfig(){
     document.getElementById('cfg-bonus-id').value=bc.valor_identificado||15
     document.getElementById('cfg-bonus-desc').value=bc.descricao_personalizada||''
     document.getElementById('cfg-min-itens').value=bc.min_itens||1
+    document.getElementById('cfg-sorteio-premio').value=bc.sorteio_premio||''
+    document.getElementById('cfg-sorteio-freq').value=bc.sorteio_frequencia||'semanal'
+    document.getElementById('cfg-sorteio-zerar').classList.toggle('on',bc.sorteio_zerar!==false)
+    document.getElementById('cfg-sorteio-excluir').classList.toggle('on',!!bc.sorteio_excluir_ganhador)
     atualizarTipoBonus()
     document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo||'AVA'
     document.getElementById('cfg-bonus-validade').value=bc.validade_dias||30
@@ -2311,11 +2472,16 @@ function atualizarTipoBonus(){
   const t=document.getElementById('cfg-bonus-tipo').value
   const wrapV=document.getElementById('cfg-bonus-valor-wrap')
   const wrapD=document.getElementById('cfg-bonus-desc-wrap')
+  const wrapS=document.getElementById('cfg-sorteio-wrap')
   const lbl=document.getElementById('cfg-bonus-valor-lbl')
-  if(t==='personalizado'||t==='servico_gratis'){
-    wrapV.style.display='none';wrapD.style.display='block'
+  const minBloco=document.getElementById('cfg-toggle-min-avals')?.closest('.bcfg-toggle')?.parentElement
+  wrapV.style.display='none';wrapD.style.display='none';wrapS.style.display='none'
+  if(t==='sorteio'){
+    wrapS.style.display='block'
+  } else if(t==='personalizado'||t==='servico_gratis'){
+    wrapD.style.display='block'
   } else {
-    wrapV.style.display='block';wrapD.style.display='none'
+    wrapV.style.display='block'
     lbl.textContent=t==='valor_fixo'?'Valor do desconto (R$)':'Percentual de desconto (%)'
   }
 }
@@ -2342,7 +2508,11 @@ async function salvarBonusConfig(){
     validade_dias:+document.getElementById('cfg-bonus-validade').value,
     min_avaliacoes:minAvals,
     descricao_personalizada:document.getElementById('cfg-bonus-desc').value.trim()||null,
-    min_itens:minItensCfg
+    min_itens:minItensCfg,
+    sorteio_premio:document.getElementById('cfg-sorteio-premio').value.trim()||null,
+    sorteio_frequencia:document.getElementById('cfg-sorteio-freq').value,
+    sorteio_zerar:document.getElementById('cfg-sorteio-zerar').classList.contains('on'),
+    sorteio_excluir_ganhador:document.getElementById('cfg-sorteio-excluir').classList.contains('on')
   },{onConflict:'negocio_id'})
   setLoading(false)
   if(error)return showToast('❌ '+error.message)
@@ -2432,9 +2602,14 @@ async function initAvaliar(slug,token){
 
     // Configura bônus
     if(bc){
+      const ehSorteio=bc.tipo==='sorteio'
       const ehTexto=bc.tipo==='personalizado'||bc.tipo==='servico_gratis'
-      const lblCurto=ehTexto?(bc.descricao_personalizada||'Bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' OFF':bc.valor_identificado+'% OFF')
-      avS.bonusLabel=ehTexto?(bc.descricao_personalizada||'um bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' de desconto':bc.valor_identificado+'% de desconto')
+      const lblCurto=ehSorteio?'🎟️ Número da Sorte':ehTexto?(bc.descricao_personalizada||'Bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' OFF':bc.valor_identificado+'% OFF')
+      avS.bonusLabel=ehSorteio?'um número da sorte':ehTexto?(bc.descricao_personalizada||'um bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' de desconto':bc.valor_identificado+'% de desconto')
+      if(ehSorteio){
+        const lblEl2=document.getElementById('av-val-lbl')
+        if(lblEl2)lblEl2.textContent='sorteio '+(bc.sorteio_frequencia||'semanal')+(bc.sorteio_premio?' · prêmio: '+bc.sorteio_premio:'')
+      }
       const valElB=document.getElementById('av-val-id')
       valElB.textContent=lblCurto
       if(lblCurto.length>12)valElB.style.fontSize='17px' 
@@ -2490,7 +2665,7 @@ async function initAvaliar(slug,token){
         return
       }
       // Progresso de avaliações
-      if(bc&&bc.min_avaliacoes>1&&linkData?.cliente_id){
+      if(bc&&bc.tipo!=='sorteio'&&bc.min_avaliacoes>1&&linkData?.cliente_id){
         const{data:qtdAnt}=await sb.rpc('contar_avaliacoes_cliente',{p_negocio_id:neg.id,p_cliente_id:linkData.cliente_id})
         const total=bc.min_avaliacoes
         // Posição desta avaliação dentro do ciclo (reinicia após cada bônus)
@@ -2519,7 +2694,7 @@ async function initAvaliar(slug,token){
 
     // Linha do tempo do ciclo dentro do card de identificação
     try{
-    if(bc&&bc.min_avaliacoes>1){
+    if(bc&&bc.tipo!=='sorteio'&&bc.min_avaliacoes>1){
       const totalC=bc.min_avaliacoes
       const lblC=document.getElementById('av-val-lbl')
       if(lblC)lblC.textContent=`a cada ${totalC} avaliações`
@@ -2584,7 +2759,6 @@ async function initAvaliar(slug,token){
   }
   setLoading(false)
 }
-function setEmoji(idx,val){document.querySelector(`.emoji-row[data-item="${idx}"]`).querySelectorAll('.emoji-btn').forEach(b=>b.classList.toggle('lit',+b.dataset.val===val))}
 function setMStar(idx,val){document.querySelector(`.mini-stars[data-item="${idx}"]`).querySelectorAll('.mstar').forEach(b=>b.classList.toggle('lit',+b.dataset.val<=val))}
 function toggleSkipId(){
   const t=document.getElementById('skip-id-toggle')
@@ -2687,9 +2861,28 @@ async function enviarAvaliacao(){
     await sb.from('avaliacao_itens').insert(itensDados.filter(i=>i.nota>0).map(i=>({...i,avaliacao_id:av.id})))
     let codigoGerado=null
     const bc=avS.bc
+    // 🎟️ Modo sorteio: toda avaliação identificada gera 1 número da sorte
+    if(bc&&bc.tipo==='sorteio'&&temId){
+      const{data:numSorte}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo||'SORTE'})
+      if(numSorte){
+        const{error:errNum}=await sb.from('codigos_bonus').insert({
+          negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
+          codigo:numSorte,tipo:'sorteio',valor:0,identificado:true,
+          descricao:'Número da sorte'+(bc.sorteio_premio?' · '+bc.sorteio_premio:'')
+        })
+        if(!errNum){
+          let qtdNums=1
+          if(cId){
+            const{data:qn}=await sb.rpc('contar_numeros_sorteio',{p_negocio_id:avS.negocio.id,p_cliente_id:cId})
+            qtdNums=qn||1
+          }
+          codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:bc.sorteio_premio||'',qtdNums,freq:bc.sorteio_frequencia||'semanal'}
+        }
+      }
+    }
     let progresso=null
 
-    if(bc&&temId){
+    if(bc&&bc.tipo!=='sorteio'&&temId){
       const minAvals=bc.min_avaliacoes||1
 
       // Conta avaliações deste cliente (já inclui a atual, inserida acima)
@@ -2769,7 +2962,27 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
   }
   
   hero.style.background=identificado?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,var(--brand),#A78BFA)'
-  hero.innerHTML=`<div class="suc-icon">${codigo?'🎉':'💜'}</div><div class="suc-title">${identificado?'Obrigado, '+nome+'!':'Obrigado!'}</div><div class="suc-sub">${codigo?'Salve seu código agora.':'Sua opinião ajuda muito!'}</div>`
+  // 🎟️ Ticket do sorteio
+  if(codigo&&codigo.tipo==='sorteio'){
+    hero.innerHTML=`<div class="suc-icon">🎟️</div><div class="suc-title">${identificado?'Obrigado, '+escHtml(nome)+'!':'Obrigado!'}</div><div class="suc-sub">Você ganhou um número da sorte!</div>`
+    const cardB=document.getElementById('suc-bonus-card')
+    if(cardB){
+      cardB.style.display='block'
+      cardB.innerHTML=`
+        <div style="background:linear-gradient(135deg,#FDF6E3,#FCEFC7);border:2px dashed var(--gold);border-radius:16px;padding:20px;text-align:center">
+          <div style="font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.1em;margin-bottom:6px">🎟️ SEU NÚMERO DA SORTE</div>
+          <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:#92400E;letter-spacing:.08em">${codigo.codigo}</div>
+          <div style="font-size:12px;color:#78350F;margin-top:8px;line-height:1.5">Sorteio <b>${codigo.freq}</b>${codigo.descricao?`<br/>Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}</div>
+        </div>
+        <div style="background:var(--brand-light);border-radius:10px;padding:11px 13px;margin-top:12px;text-align:center;font-size:13px;color:var(--brand)">
+          🍀 Você tem <b>${codigo.qtdNums} número${codigo.qtdNums>1?'s':''}</b> neste sorteio!<br/><span style="font-size:11px;opacity:.8">Cada visita avaliada = +1 chance de ganhar</span>
+        </div>`
+    }
+    const cardC=document.getElementById('suc-caixa-card')
+    if(cardC)cardC.innerHTML='<div style="font-size:12px;color:var(--muted)">📸 Guarde um print — o ganhador é avisado pelo WhatsApp!</div>'
+    return
+  }
+  hero.innerHTML=`<div class="suc-icon">${codigo?'🎉':'💜'}</div><div class="suc-title">${identificado?'Obrigado, '+escHtml(nome)+'!':'Obrigado!'}</div><div class="suc-sub">${codigo?'Salve seu código agora.':'Sua opinião ajuda muito!'}</div>`
   // Esconde seção de código se não gerou
   const codigoSection=document.querySelector('.suc-wrap .card:first-child')
   if(codigo){
