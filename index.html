@@ -790,6 +790,15 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
         <div class="card" style="text-align:center">
           <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Logado como</div>
           <div style="font-size:14px;font-weight:700;margin-bottom:14px" id="cfg-user-email">—</div>
+          <div class="field" style="margin-bottom:12px">
+            <label>📲 Aplicativo para enviar mensagens</label>
+            <select id="cfg-wpp-app" onchange="salvarWppApp()">
+              <option value="padrao">Deixar o celular decidir</option>
+              <option value="normal">WhatsApp (normal)</option>
+              <option value="business">WhatsApp Business</option>
+            </select>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Útil se você tem os dois instalados e quer forçar um deles (só Android)</div>
+          </div>
           <button class="btn btn-danger btn-full" onclick="fazerLogout()">🚪 Sair da conta</button>
         </div>
         </div><!-- fim cfg-geral -->
@@ -1128,7 +1137,21 @@ function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt
 function escJs(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,'\\u0027').replace(/"/g,'&quot;').replace(/</g,'\\u003C')}
 
 function montarMsg(tpl,v){if(v&&!v.apelido)v.apelido=v.nome;return(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]||'{'+k+'}')}
-function linkWpp(tel,msg){return'https://wa.me/55'+tel.replace(/\D/g,'')+'?text='+encodeURIComponent(msg)}
+function linkWpp(tel,msg){
+  const num='55'+tel.replace(/\D/g,'')
+  const texto=encodeURIComponent(msg)
+  const pref=localStorage.getItem('wppApp')||'padrao'
+  const ehAndroid=/android/i.test(navigator.userAgent)
+  // No Android dá para abrir um app específico; em outros sistemas usa o link universal
+  if(ehAndroid&&pref==='normal')return'intent://send?phone='+num+'&text='+texto+'#Intent;scheme=whatsapp;package=com.whatsapp;end'
+  if(ehAndroid&&pref==='business')return'intent://send?phone='+num+'&text='+texto+'#Intent;scheme=whatsapp;package=com.whatsapp.w4b;end'
+  return'https://wa.me/'+num+'?text='+texto
+}
+function abrirWhatsApp(tel,msg){
+  const url=linkWpp(tel,msg)
+  if(url.startsWith('intent:'))location.href=url
+  else window.open(url,'_blank')
+}
 
 // ── AUTH ──
 async function initApp(){
@@ -1786,7 +1809,7 @@ async function realizarSorteio(){
       const wb=document.getElementById('srt-win-wpp')
       wb.onclick=()=>{
         const msg='🎊 PARABÉNS '+(data.nome||'').split(' ')[0].toUpperCase()+'! Seu número '+data.codigo+' foi o GANHADOR do nosso sorteio! 🏆 Prêmio: '+(data.premio||'')+'. Fale com a gente para combinar a retirada! 🎉'
-        if(data.whatsapp)window.open(linkWpp(data.whatsapp,msg),'_blank')
+        if(data.whatsapp)abrirWhatsApp(data.whatsapp,msg)
         else showToast('Cliente sem WhatsApp cadastrado')
       }
       document.getElementById('srt-win').style.display='block'
@@ -2384,7 +2407,7 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   document.getElementById('m-enviar-sub').textContent='Para '+nome+' · '+wpp
   document.getElementById('m-enviar-preview').textContent=msg
   document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
-    window.open(linkWpp(wpp,msg),'_blank')
+    abrirWhatsApp(wpp,msg)
     // Registra para o cooldown e o contador do dia
     localStorage.setItem('ultimoEnvioTs',Date.now())
     const hj=new Date().toISOString().slice(0,10)
@@ -2431,7 +2454,15 @@ async function confirmarResgate(){
 }
 
 // ── CONFIG ──
+function salvarWppApp(){
+  localStorage.setItem('wppApp',document.getElementById('cfg-wpp-app').value)
+  showToast('✅ Preferência de WhatsApp salva neste aparelho')
+}
+
 async function carregarConfig(){
+  const wppSel=document.getElementById('cfg-wpp-app')
+  if(wppSel)wppSel.value=localStorage.getItem('wppApp')||'padrao'
+
   if(!S.negocio)return
   setLoading(true)
   // Força busca direta do banco
@@ -2898,13 +2929,18 @@ async function enviarAvaliacao(){
     const bc=avS.bc
     // 🎟️ Modo sorteio: toda avaliação identificada gera 1 número da sorte
     if(bc&&bc.tipo==='sorteio'&&temId){
-      const{data:numSorte}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo||'SORTE'})
+      const{data:numSorte,error:errRpc}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo||'SORTE'})
+      if(errRpc)console.warn('sorteio rpc:',errRpc)
       if(numSorte){
+        // Validade de 1 ano: alguns bancos exigem expira_em preenchido
+        const expSorte=new Date();expSorte.setDate(expSorte.getDate()+365)
         const{error:errNum}=await sb.from('codigos_bonus').insert({
           negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
           codigo:numSorte,tipo:'sorteio',valor:0,identificado:true,
+          expira_em:expSorte.toISOString(),
           descricao:'Número da sorte'+(bc.sorteio_premio?' · '+bc.sorteio_premio:'')
         })
+        if(errNum){console.warn('sorteio insert:',errNum);showToast('⚠️ Número da sorte não gerado: '+errNum.message,4000)}
         if(!errNum){
           let qtdNums=1
           if(cId){
@@ -3028,7 +3064,7 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
     if(identificado&&tel){
       const tpl='🎁 Seu bônus chegou, {nome}!\nDesconto: {bonus_id} no {empresa}\nCódigo: *{codigo}*\nVálido até: {validade}\nMostre no caixa 😊'
       const msg=montarMsg(tpl,{nome,empresa:avS.negocio.nome,codigo:codigo.codigo,bonus_id:codigo.descricao,validade:new Date(codigo.expira_em).toLocaleDateString('pt-BR')})
-      const btn=document.getElementById('suc-wpp-btn');btn.style.display='flex';btn.onclick=()=>window.open(linkWpp(tel,msg),'_blank')
+      const btn=document.getElementById('suc-wpp-btn');btn.style.display='flex';btn.onclick=()=>abrirWhatsApp(tel,msg)
     }
   } else {
     // Sem código — esconde os cards de código
