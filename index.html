@@ -747,6 +747,7 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             <span class="tpl-var" onclick="insVar('tpl-pedido','{link}')">{link}</span>
             <span class="tpl-var" onclick="insVar('tpl-pedido','{bonus_id}')">{bonus_id}</span>
             <span class="tpl-var" onclick="insVar('tpl-pedido','{apelido}')">{apelido}</span>
+            <span class="tpl-var" onclick="insVar('tpl-pedido','{premio}')">{premio}</span>
           </div>
           <textarea class="tpl-ta" id="tpl-pedido"></textarea>
           <div class="tpl-acts">
@@ -1715,9 +1716,15 @@ function navTo(page){
 async function carregarSorteio(){
   const painel=document.getElementById('painel-sorteio')
   if(!painel||!S.negocio)return
-  const bc=S.bonusConfig||(await sb.from('bonus_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle()).data
+  const{data:bc}=await sb.from('bonus_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle()
   if(!bc||bc.tipo!=='sorteio'){painel.style.display='none';return}
   painel.style.display='block'
+  // Sorteio ativo → painel vai para o TOPO da página Resgatar
+  if(painel.parentElement.firstElementChild!==painel){
+    painel.parentElement.insertBefore(painel,painel.parentElement.firstElementChild)
+    painel.style.marginTop='0'
+    painel.style.marginBottom='20px'
+  }
   document.getElementById('srt-freq').textContent=bc.sorteio_frequencia||'semanal'
   document.getElementById('srt-premio-lbl').textContent='🏆 PRÊMIO: '+(bc.sorteio_premio||'defina em Config').toUpperCase()
 
@@ -2366,7 +2373,14 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
     link+='&nome='+encodeURIComponent(nome)+'&tel='+encodeURIComponent(wpp.replace(/\D/g,''))
   }
   const bc=S.bonusConfig,tpl=S.templates['pedido_avaliacao']||'Olá {nome}! Avalie o {empresa}: {link}'
-  const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bc?bc.valor_identificado+'%':'bônus',bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
+  let bonusTxt='bônus'
+  if(bc){
+    if(bc.tipo==='sorteio')bonusTxt=bc.sorteio_premio||'prêmios no sorteio'
+    else if(bc.tipo==='valor_fixo')bonusTxt='R$ '+bc.valor_identificado
+    else if(bc.tipo==='personalizado'||bc.tipo==='servico_gratis')bonusTxt=bc.descricao_personalizada||'um bônus especial'
+    else bonusTxt=bc.valor_identificado+'%'
+  }
+  const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bonusTxt,premio:bc?.sorteio_premio||'',bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
   document.getElementById('m-enviar-sub').textContent='Para '+nome+' · '+wpp
   document.getElementById('m-enviar-preview').textContent=msg
   document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
@@ -2468,6 +2482,25 @@ function renderCfgItens(){
 function delCfgItem(i){S.itens.splice(i,1);renderCfgItens()}
 function addCfgItem(){const inp=document.getElementById('cfg-new-item'),v=inp.value.trim();if(!v)return;const emoji=v.match(/^\p{Emoji}/u)?.[0]||null,nome=emoji?v.replace(emoji,'').trim():v;S.itens.push({negocio_id:S.negocio.id,nome,emoji,ordem:S.itens.length});inp.value='';renderCfgItens()}
 async function salvarItens(){setLoading(true);await sb.from('itens_avaliacao').delete().eq('negocio_id',S.negocio.id);if(S.itens.length)await sb.from('itens_avaliacao').insert(S.itens.map((it,i)=>({negocio_id:S.negocio.id,nome:it.nome,emoji:it.emoji,ordem:i})));await carregarItens();setLoading(false);showToast('✅ Itens salvos!')}
+const TPL_PEDIDO_DESCONTO='Olá {apelido}! 😊\nObrigado por visitar a {empresa}.\nAvalie nosso atendimento e ganhe {bonus_id} de desconto na próxima visita! 🎁\n👉 {link}'
+const TPL_PEDIDO_SORTEIO='Olá {apelido}! 😊\nObrigado por visitar a {empresa}.\nAvalie nosso atendimento e concorra ao sorteio de *{premio}*! 🎟️\nCada avaliação = 1 número da sorte.\n👉 {link}'
+
+async function ajustarTemplatePorTipo(tipoNovo){
+  const atual=S.templates?.['pedido_avaliacao']||''
+  let novo=null
+  if(tipoNovo==='sorteio'&&!atual.includes('sorteio')){
+    novo=TPL_PEDIDO_SORTEIO
+  } else if(tipoNovo!=='sorteio'&&atual.includes('sorteio')){
+    novo=TPL_PEDIDO_DESCONTO
+  }
+  if(!novo)return
+  await sb.from('templates_mensagem').upsert({negocio_id:S.negocio.id,tipo:'pedido_avaliacao',conteudo:novo,titulo:'pedido_avaliacao'},{onConflict:'negocio_id,tipo'})
+  await carregarTemplates()
+  const ta=document.getElementById('tpl-pedido')
+  if(ta)ta.value=novo
+  showToast('✉️ Mensagem de pedido atualizada para o novo tipo de bônus')
+}
+
 function atualizarTipoBonus(){
   const t=document.getElementById('cfg-bonus-tipo').value
   const wrapV=document.getElementById('cfg-bonus-valor-wrap')
@@ -2516,6 +2549,8 @@ async function salvarBonusConfig(){
   },{onConflict:'negocio_id'})
   setLoading(false)
   if(error)return showToast('❌ '+error.message)
+  // Ajusta a mensagem de pedido automaticamente ao trocar o tipo de bônus
+  await ajustarTemplatePorTipo(document.getElementById('cfg-bonus-tipo').value)
   await carregarBonusConfig()
   showToast('✅ Bônus salvo!')
 }
