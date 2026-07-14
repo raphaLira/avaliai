@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Manual de Uso — AvaliaAí</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#6C3BF5;--brand-light:#EDE8FF;--bg:#F4F2FB;--text:#1B1430;--muted:#7B6F8C;--border:#E8E3F4;--gold:#D97706;--amber:#F5A623;--green:#16A34A}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+.hero{background:linear-gradient(135deg,var(--brand),#8B5CF6);color:#fff;padding:36px 20px 30px;text-align:center}
+.hero h1{font-size:24px;font-weight:800}
+.hero p{font-size:13px;opacity:.8;margin-top:4px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 60px}
+.back{display:inline-block;margin:14px 0 0;font-size:13px;color:#fff;text-decoration:none;font-weight:700;background:rgba(255,255,255,.18);border-radius:10px;padding:8px 16px}
+/* índice */
+.indice{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:-18px 0 24px;position:relative}
+.idx{background:#fff;border-radius:13px;padding:13px 12px;text-decoration:none;color:var(--text);box-shadow:0 2px 12px rgba(108,59,245,.1);font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.idx span{font-size:17px}
+/* seções */
+section{background:#fff;border-radius:18px;padding:22px 20px;margin-bottom:14px;box-shadow:0 1px 8px rgba(108,59,245,.06);scroll-margin-top:16px}
+h2{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+h2 .ic{font-size:22px}
+h3{font-size:13.5px;font-weight:800;color:var(--brand);margin:16px 0 6px}
+p,li{font-size:13.5px;color:#3d3450}
+ol,ul{padding-left:20px;margin:6px 0 10px}
+li{margin-bottom:5px}
+.passo{display:flex;gap:11px;margin-bottom:11px;align-items:flex-start}
+.passo .n{background:var(--brand-light);color:var(--brand);border-radius:9px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.dica{background:var(--brand-light);border-radius:11px;padding:11px 14px;font-size:12.5px;color:var(--brand);margin:10px 0;line-height:1.55}
+.alerta{background:#FFF7E6;border:1px solid #F0D48A;border-radius:11px;padding:11px 14px;font-size:12.5px;color:#78350F;margin:10px 0;line-height:1.55}
+.tag{display:inline-block;background:var(--bg);border-radius:7px;padding:2px 8px;font-size:11.5px;font-weight:700;color:var(--brand)}
+kbd{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-family:inherit;font-size:12px;font-weight:700}
+details{border:1px solid var(--border);border-radius:11px;margin-bottom:8px;overflow:hidden}
+summary{cursor:pointer;padding:12px 14px;font-size:13px;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';color:var(--brand);font-size:17px}
+details[open] summary::after{content:'−'}
+details p{padding:0 14px 12px}
+.topo{position:fixed;bottom:18px;right:18px;background:var(--brand);color:#fff;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px;box-shadow:0 6px 20px rgba(108,59,245,.4)}
+</style>
+</head>
+<body id="topo">
+
+<div class="hero">
+  <h1>📖 Manual do AvaliaAí</h1>
+  <p>Tudo o que você precisa para transformar avaliações em clientes fiéis</p>
+  <a class="back" href="/">← Voltar ao app</a>
+</div>
+
+<div class="wrap">
+
+<div class="indice">
+  <a class="idx" href="#inicio"><span>🚀</span>Primeiros passos</a>
+  <a class="idx" href="#clientes"><span>👥</span>Clientes</a>
+  <a class="idx" href="#envio"><span>📲</span>Enviando avaliações</a>
+  <a class="idx" href="#bonus"><span>🎁</span>Tipos de bônus</a>
+  <a class="idx" href="#sorteio"><span>🎟️</span>Sorteio</a>
+  <a class="idx" href="#gamificacao"><span>🎮</span>Gamificação</a>
+  <a class="idx" href="#resgatar"><span>🎫</span>Resgatando cupons</a>
+  <a class="idx" href="#dashboard"><span>📊</span>Dashboard</a>
+  <a class="idx" href="#mensagens"><span>✉️</span>Mensagens</a>
+  <a class="idx" href="#faq"><span>❓</span>Problemas comuns</a>
+</div>
+
+<section id="inicio">
+  <h2><span class="ic">🚀</span>Primeiros passos</h2>
+  <div class="passo"><div class="n">1</div><div><b>Crie sua conta</b> com Google ou e-mail. Importante: use <b>o mesmo e-mail da sua compra na Hotmart</b> — o acesso libera automaticamente. Se usou outro e-mail, toque em "Já comprei — verificar acesso".</div></div>
+  <div class="passo"><div class="n">2</div><div><b>Configure seu negócio</b> no passo a passo inicial: nome, ramo, itens que os clientes vão avaliar (ex: atendimento, prazo, preço) e o bônus.</div></div>
+  <div class="passo"><div class="n">3</div><div><b>Pronto!</b> Seu link de avaliação já está no ar. Ele aparece no topo do Dashboard — é esse link que seus clientes vão abrir.</div></div>
+  <div class="dica">💡 <b>Instale o app na tela inicial:</b> ao abrir pelo celular, aceite o convite de instalação (ou use "Adicionar à tela inicial" no menu do navegador). Funciona como um aplicativo normal.</div>
+</section>
+
+<section id="clientes">
+  <h2><span class="ic">👥</span>Cadastrando clientes</h2>
+  <p>Aba <span class="tag">Clientes</span> → botão <kbd>➕ Novo cliente</kbd>. Só nome e WhatsApp são obrigatórios.</p>
+  <h3>Apelido (recomendado!)</h3>
+  <p>Cadastre como o cliente gosta de ser chamado ("Jão", "Mari"). As mensagens ficam pessoais: <i>"Olá Jão!"</i> em vez de <i>"Olá João da Silva Santos!"</i> — e mensagem pessoal tem mais resposta.</p>
+  <h3>Cadastro rápido pela Lista</h3>
+  <p>Na aba Lista, busque o telefone — se não existir, toque em <kbd>Cadastrar novo cliente e adicionar à lista</kbd>. O telefone já vem preenchido.</p>
+</section>
+
+<section id="envio">
+  <h2><span class="ic">📲</span>Enviando pedidos de avaliação</h2>
+  <div class="passo"><div class="n">1</div><div>Aba <span class="tag">Lista</span> → busque ou cadastre o cliente → ele entra na fila como "Aguardando".</div></div>
+  <div class="passo"><div class="n">2</div><div>Toque em <kbd>📲</kbd> → o WhatsApp abre com a mensagem e o link prontos → é só enviar.</div></div>
+  <div class="passo"><div class="n">3</div><div>Quando o cliente avaliar, o item muda sozinho para <b>⭐ Avaliado</b>. Toque em <kbd>👁 Ver</kbd> para ler a avaliação dele.</div></div>
+  <h3>🛡️ As 3 regras de ouro do envio seguro</h3>
+  <ol>
+    <li><b>Envie logo após o atendimento, um por um</b> — nunca a lista inteira de uma vez;</li>
+    <li><b>Aguarde 2-5 minutos entre envios</b> (o app te avisa se estiver rápido demais);</li>
+    <li><b>Personalize e responda</b> quem te responder.</li>
+  </ol>
+  <div class="alerta">⚠️ Rajadas de mensagens iguais podem fazer o WhatsApp <b>restringir seu número por 24h ou mais</b>. O contador "Enviados hoje" te ajuda a manter o ritmo saudável.</div>
+  <h3>Tenho WhatsApp normal e Business — qual abre?</h3>
+  <p>Em <span class="tag">Config → Conta</span> → "📲 Aplicativo para enviar mensagens" você escolhe qual dos dois deve abrir (Android).</p>
+  <h3>QR Code no balcão</h3>
+  <p>No Dashboard, toque no seu link → opção de QR Code. Imprima e deixe no caixa: o cliente escaneia e avalia na hora, sem você enviar nada.</p>
+</section>
+
+<section id="bonus">
+  <h2><span class="ic">🎁</span>Tipos de bônus</h2>
+  <p>Em <span class="tag">Config → Bônus</span>, escolha o que o cliente ganha ao avaliar:</p>
+  <ul>
+    <li><b>% de desconto</b> — ex: 10% na próxima visita;</li>
+    <li><b>Valor fixo</b> — ex: R$ 15 de desconto;</li>
+    <li><b>Serviço grátis / Personalizado</b> — você descreve o prêmio (ex: "1 sobremesa grátis");</li>
+    <li><b>🎟️ Sorteio</b> — cada avaliação vira um número da sorte (veja a seção Sorteio).</li>
+  </ul>
+  <h3>Ciclo de avaliações</h3>
+  <p>Ative <b>"Exigir X avaliações"</b> para o cupom sair só a cada X avaliações (ex: na 3ª, 6ª, 9ª…). O cliente vê a barra de progresso "2 de 3" e a contagem <b>reinicia após cada cupom</b> — fidelização contínua.</p>
+  <h3>Mínimo de itens</h3>
+  <p>Defina quantos itens o cliente precisa avaliar para conseguir enviar. O limite é a quantidade de itens que você tem cadastrados.</p>
+  <div class="dica">💡 Só clientes <b>identificados</b> (nome + WhatsApp) ganham bônus. Quem marca "não quero me identificar" só deixa a opinião.</div>
+</section>
+
+<section id="sorteio">
+  <h2><span class="ic">🎟️</span>Sorteio</h2>
+  <p>No modo sorteio, <b>cada avaliação identificada gera 1 número da sorte</b>. Quanto mais o cliente volta, mais chances tem.</p>
+  <h3>Configurando</h3>
+  <p><span class="tag">Config → Bônus</span> → tipo <b>🎟️ Sorteio</b> → defina o prêmio, a frequência (semanal/quinzenal/mensal) e as regras: zerar números a cada sorteio e se o ganhador fica de fora por 30 dias.</p>
+  <h3>Realizando o sorteio</h3>
+  <div class="passo"><div class="n">1</div><div>Aba <span class="tag">Resgatar</span> → o painel do sorteio aparece no topo com os números e participantes do período.</div></div>
+  <div class="passo"><div class="n">2</div><div>Toque em <kbd>🎲 Realizar sorteio agora</kbd> → a roleta gira e revela o ganhador. O sorteio é feito no servidor, 100% aleatório — <b>dica: filme a tela e poste nas redes!</b></div></div>
+  <div class="passo"><div class="n">3</div><div>Toque em <kbd>📲 Avisar no WhatsApp</kbd> → mensagem de parabéns pronta. Depois de entregar o prêmio, marque <kbd>✓ Entregue</kbd> no histórico.</div></div>
+</section>
+
+<section id="gamificacao">
+  <h2><span class="ic">🎮</span>Gamificação</h2>
+  <p>Em <span class="tag">Config → aba 🎮</span>, ative mecânicas que transformam avaliar em jogo:</p>
+  <ul>
+    <li><b>🥈 Níveis</b> — Bronze, Prata, Ouro, VIP: o desconto cresce com o total de avaliações (e substitui o desconto padrão);</li>
+    <li><b>🃏 Cartão de selos</b> — o cartãozinho de carimbo digital: complete X selos e ganhe o prêmio;</li>
+    <li><b>🎰 Bônus surpresa</b> — desconto especial a cada X avaliações;</li>
+    <li><b>🔥 Streak</b> — recompensa quem volta com frequência.</li>
+  </ul>
+  <p>O cliente vê seus cards de progresso na tela de avaliação (ao abrir pelo link do disparo ou digitar o telefone).</p>
+</section>
+
+<section id="resgatar">
+  <h2><span class="ic">🎫</span>Resgatando cupons</h2>
+  <div class="passo"><div class="n">1</div><div>O cliente apresenta o código (na tela dele ou print).</div></div>
+  <div class="passo"><div class="n">2</div><div>Aba <span class="tag">Resgatar</span> → digite o código → o app valida e mostra o desconto.</div></div>
+  <div class="passo"><div class="n">3</div><div>Confirme o resgate — o código é marcado como usado e não vale duas vezes.</div></div>
+</section>
+
+<section id="dashboard">
+  <h2><span class="ic">📊</span>Dashboard</h2>
+  <ul>
+    <li><b>Nível do negócio</b> (🥉→💎), nota média, tendência dos últimos 7 dias;</li>
+    <li><b>Pontos de atenção</b> — itens com nota abaixo de 4 aparecem destacados: é ali que você age;</li>
+    <li><b>Dica do dia</b> — sugestão prática com base nos seus números;</li>
+    <li><b>Ver todas as avaliações</b> — com filtros por nome/telefone, nota e identificado/anônimo.</li>
+  </ul>
+  <div class="dica">🙈 <b>Vai tirar print ou gravar?</b> Toque no botão 👁 ao lado de "Últimas avaliações" — nomes e telefones ficam borrados para proteger seus clientes.</div>
+</section>
+
+<section id="mensagens">
+  <h2><span class="ic">✉️</span>Personalizando mensagens</h2>
+  <p>Em <span class="tag">Config → Mensagens</span> você edita os textos enviados. Toque nas variáveis para inseri-las:</p>
+  <ul>
+    <li><span class="tag">{apelido}</span> — como o cliente gosta de ser chamado (usa o nome se não tiver);</li>
+    <li><span class="tag">{nome}</span> · <span class="tag">{empresa}</span> · <span class="tag">{link}</span></li>
+    <li><span class="tag">{bonus_id}</span> — o benefício atual (muda sozinho conforme o tipo de bônus);</li>
+    <li><span class="tag">{premio}</span> — o prêmio do sorteio.</li>
+  </ul>
+  <p>Ao trocar o tipo de bônus para sorteio (e vice-versa), a mensagem de pedido <b>se ajusta automaticamente</b>.</p>
+</section>
+
+<section id="faq">
+  <h2><span class="ic">❓</span>Problemas comuns</h2>
+  <details><summary>Meu WhatsApp foi restringido. E agora?</summary><p>É temporário (normalmente 24h) — aguarde, não tente burlar. Depois, siga as 3 regras de ouro do envio seguro. Se tiver WhatsApp Business em outro número, selecione-o em Config → Conta.</p></details>
+  <details><summary>O cliente avaliou mas continua "aguardando" na lista</summary><p>Puxe a tela para atualizar ou troque de aba e volte. Se persistir, confira se o cliente usou o link certo (cada envio tem um link próprio).</p></details>
+  <details><summary>O cliente não ganhou o cupom</summary><p>Confira: (1) ele se identificou? Anônimo não ganha; (2) se o ciclo está ativo (ex: 3 avaliações), o cupom sai só na 3ª — antes disso aparece o progresso.</p></details>
+  <details><summary>Comprei na Hotmart mas o app diz "Quase lá"</summary><p>Você provavelmente se cadastrou com um e-mail diferente do usado na compra. Toque em "Já comprei — verificar acesso" ou crie a conta com o e-mail da compra.</p></details>
+  <details><summary>Quero mudar os itens de avaliação</summary><p>Config → Itens de avaliação. Você pode adicionar, editar o emoji e o nome, ou remover. Vale para as próximas avaliações.</p></details>
+  <details><summary>Como cancelo a assinatura?</summary><p>Direto na Hotmart (e-mail de compra → "Gerenciar assinatura"), sem multa. Nos primeiros 7 dias o reembolso é total.</p></details>
+  <p style="margin-top:14px;text-align:center;font-size:12.5px;color:var(--muted)">Não achou sua dúvida? Fale com a gente: <a href="mailto:raphaellirasilva@gmail.com" style="color:var(--brand);font-weight:700">raphaellirasilva@gmail.com</a></p>
+</section>
+
+</div>
+<a class="topo" href="#topo">↑</a>
+</body>
+</html>
