@@ -1046,8 +1046,26 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
     <div class="mtitle">👤 Novo cliente + Lista</div>
     <div class="msub">Cadastra o cliente e já adiciona na lista de disparo</div>
     <div class="field"><label>Nome *</label><input type="text" id="nl-nome" placeholder="Ex: João Silva"/></div>
-    <div class="field"><label>Apelido <span style="font-weight:400;color:var(--muted)">(opcional)</span></label><input type="text" id="nl-apelido" placeholder="Ex: Jão"/></div>
-    <div class="field"><label>WhatsApp *</label><input type="tel" id="nl-whatsapp" placeholder="(11) 99999-9999"/></div>
+    <div class="field-row">
+      <div class="field"><label>Apelido</label><input type="text" id="nl-apelido" placeholder="Ex: Jão"/></div>
+      <div class="field"><label>WhatsApp *</label><input type="tel" id="nl-whatsapp" placeholder="(11) 99999-9999"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>E-mail</label><input type="email" id="nl-email" placeholder="opcional"/></div>
+      <div class="field"><label>CPF</label><input type="text" id="nl-cpf" placeholder="opcional"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:2"><label>Rua</label><input type="text" id="nl-rua" placeholder="opcional"/></div>
+      <div class="field" style="flex:1"><label>Nº</label><input type="text" id="nl-num"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Bairro</label><input type="text" id="nl-bairro"/></div>
+      <div class="field"><label>CEP</label><input type="text" id="nl-cep"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:2"><label>Cidade</label><input type="text" id="nl-cidade"/></div>
+      <div class="field" style="flex:1"><label>UF</label><input type="text" id="nl-uf" maxlength="2"/></div>
+    </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModalDirect('m-novo-na-lista')">Cancelar</button>
       <button class="btn btn-primary" style="flex:2" onclick="novoClienteNaLista()">➕ Cadastrar e adicionar</button>
@@ -2123,6 +2141,15 @@ async function carregarClientes(busca=''){
   el.innerHTML=data.map(c=>`<div class="ci"><div class="ci-av">${ini(c.nome)}</div><div class="ci-info"><div class="ci-name">${escHtml(c.nome)}${c.apelido?` <span style="font-weight:400;color:var(--muted);font-size:11px">"${escHtml(c.apelido)}"</span>`:''}</div><div class="ci-phone">${c.whatsapp}</div><div class="ci-meta"><span class="badge bp">${c.origem||'manual'}</span></div></div><div class="ci-acts"><button class="btn btn-green" onclick="abrirEnviar(null,'${escJs(c.apelido||c.nome)}','${c.whatsapp}',null)">📲</button><button class="btn btn-ghost" onclick="editarClientePorId('${c.id}')">✏️</button></div></div>`).join('')
 }
 function buscarClientes(v){carregarClientes(v)}
+async function editarClienteDaLista(cid){
+  if(!cid)return showToast('Este registro não tem cadastro vinculado')
+  setLoading(true)
+  const{data:c}=await sb.from('clientes').select('*').eq('id',cid).maybeSingle()
+  setLoading(false)
+  if(!c)return showToast('Cliente não encontrado')
+  editarCliente(c.id,c.nome,c.whatsapp,c.email||'',c.cpf||'',c.logradouro||'',c.numero||'',c.bairro||'',c.cep||'',c.cidade||'',c.uf||'',c.apelido||'')
+}
+
 function editarClientePorId(id){
   const c=(S._cliCache||[]).find(x=>x.id===id)
   if(!c)return showToast('Cliente não encontrado — recarregue a página')
@@ -2157,6 +2184,7 @@ function cancelarCadastroCliente(){
   const t=document.querySelector('#m-novo-cliente .mtitle')
   if(t)t.textContent='➕ Novo cliente'
   closeModalDirect('m-novo-cliente')
+  if(!document.getElementById('page-lista')?.classList.contains('hidden'))carregarLista(S._filtroLista||'todos')
 }
 
 async function salvarCliente(){
@@ -2234,14 +2262,14 @@ async function carregarLista(filtro='todos'){
   // Banner de boas práticas
   const avisoEl=document.getElementById('aviso-envio')
   if(avisoEl)avisoEl.style.display=localStorage.getItem('avisoEnvioOk')?'none':'block'
-  // Contador de envios de hoje
-  const hjL=new Date().toISOString().slice(0,10)
-  const cstL=JSON.parse(localStorage.getItem('enviosDia')||'{}')
-  const elHj=document.getElementById('lista-hoje')
-  if(elHj)elHj.textContent=cstL.d===hjL?cstL.n:0
 
   if(!S.negocio)return
   S._filtroLista=filtro
+  // Contador "Enviados hoje" vem do banco (vale em qualquer aparelho)
+  const hoje0=new Date();hoje0.setHours(0,0,0,0)
+  sb.from('lista_disparo').select('id',{count:'exact',head:true})
+    .eq('negocio_id',S.negocio.id).gte('enviado_em',hoje0.toISOString())
+    .then(({count})=>{const e=document.getElementById('lista-hoje');if(e)e.textContent=count??0})
   let q=sb.from('lista_disparo')
     .select('*,clientes(nome,apelido,whatsapp),links_avaliacao(token)')
     .eq('negocio_id',S.negocio.id)
@@ -2307,7 +2335,7 @@ function renderLista(lista,filtro){
       badge=`<span class="badge bg" style="margin-top:3px">⭐ Avaliado</span>`
       acoes=`<button class="btn btn-ghost" style="font-size:11px" onclick="verAvaliacaoCliente('${it.cliente_id||''}','${it.link_id||''}','${escJs(nomeRaw)}')">👁 Ver</button>`
     }
-    return `<div class="list-item"><div class="li-av">${ini(nome)}</div><div class="li-info"><div class="li-name">${nome}</div><div class="li-phone">${wpp}</div><div class="li-time">⏱ Adicionado há <span>${tempoLista(it.adicionado_em)}</span></div>${badge}</div><div class="li-acts">${acoes}</div></div>`
+    return `<div class="list-item"><div class="li-av" onclick="editarClienteDaLista('${it.cliente_id||''}')" style="cursor:pointer">${ini(nome)}</div><div class="li-info" onclick="editarClienteDaLista('${it.cliente_id||''}')" style="cursor:pointer"><div class="li-name">${nome} <span style="font-size:10px;color:var(--muted);font-weight:400">✏️</span></div><div class="li-phone">${wpp}</div><div class="li-time">⏱ Adicionado há <span>${tempoLista(it.adicionado_em)}</span></div>${badge}</div><div class="li-acts">${acoes}</div></div>`
   }).join('')
 
 }
@@ -2348,14 +2376,16 @@ async function novoClienteNaLista(){
   if(!nome||!wpp)return showToast('Nome e WhatsApp obrigatórios')
   setLoading(true)
   // Upsert cliente
-  const apelidoNl=document.getElementById('nl-apelido')?.value.trim()||null
+  const gv=id=>document.getElementById(id)?.value.trim()||null
   const{data:cli,error}=await sb.from('clientes').upsert({
-    negocio_id:S.negocio.id,nome,apelido:apelidoNl,whatsapp:wpp,origem:'lista'
+    negocio_id:S.negocio.id,nome,apelido:gv('nl-apelido'),whatsapp:wpp,origem:'lista',
+    email:gv('nl-email'),cpf:gv('nl-cpf'),logradouro:gv('nl-rua'),numero:gv('nl-num'),
+    bairro:gv('nl-bairro'),cep:gv('nl-cep'),cidade:gv('nl-cidade'),uf:gv('nl-uf')
   },{onConflict:'negocio_id,whatsapp'}).select().single()
   if(error){setLoading(false);return showToast('❌ '+error.message)}
   closeModalDirect('m-novo-na-lista')
   document.getElementById('nl-nome').value=''
-  document.getElementById('nl-whatsapp').value=''
+  ;['nl-whatsapp','nl-apelido','nl-email','nl-cpf','nl-rua','nl-num','nl-bairro','nl-cep','nl-cidade','nl-uf'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''})
   await adicionarLista(cli.id)
 }
 
@@ -2410,11 +2440,8 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
     abrirWhatsApp(wpp,msg)
     // Registra para o cooldown e o contador do dia
     localStorage.setItem('ultimoEnvioTs',Date.now())
-    const hj=new Date().toISOString().slice(0,10)
-    const cst=JSON.parse(localStorage.getItem('enviosDia')||'{}')
-    localStorage.setItem('enviosDia',JSON.stringify({d:hj,n:(cst.d===hj?cst.n:0)+1}))
     const elHoje=document.getElementById('lista-hoje')
-    if(elHoje){const c2=JSON.parse(localStorage.getItem('enviosDia'));elHoje.textContent=c2.n}
+    if(elHoje)elHoje.textContent=(+elHoje.textContent||0)+1
     if(S._itemIdAtual){
       await sb.from('lista_disparo').update({status:'enviado',enviado_em:new Date().toISOString()}).eq('id',S._itemIdAtual)
       S._itemIdAtual=null
