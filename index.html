@@ -790,15 +790,19 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
         <div class="card" style="text-align:center">
           <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Logado como</div>
           <div style="font-size:14px;font-weight:700;margin-bottom:14px" id="cfg-user-email">—</div>
+          <button class="btn btn-primary btn-full" id="btn-instalar-app" style="margin-bottom:10px" onclick="instalarApp()">📲 Instalar o app no celular</button>
           <a href="/manual.html" target="_blank" class="btn btn-ghost btn-full" style="margin-bottom:12px;text-decoration:none;display:block;text-align:center">📖 Manual de uso do AvaliaAí</a>
           <div class="field" style="margin-bottom:12px">
             <label>📲 Aplicativo para enviar mensagens</label>
-            <select id="cfg-wpp-app" onchange="salvarWppApp()">
-              <option value="padrao">Deixar o celular decidir</option>
-              <option value="normal">WhatsApp (normal)</option>
-              <option value="business">WhatsApp Business</option>
-            </select>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">Útil se você tem os dois instalados e quer forçar um deles (só Android)</div>
+            <div style="display:flex;gap:8px">
+              <select id="cfg-wpp-app" style="flex:1">
+                <option value="padrao">Deixar o celular decidir</option>
+                <option value="normal">WhatsApp (normal)</option>
+                <option value="business">WhatsApp Business</option>
+              </select>
+              <button class="btn btn-primary" style="flex-shrink:0;padding:0 18px" onclick="salvarWppApp()">💾 Salvar</button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Fica salvo na sua conta. A escolha do app só tem efeito no Android</div>
           </div>
           <button class="btn btn-danger btn-full" onclick="fazerLogout()">🚪 Sair da conta</button>
         </div>
@@ -1141,7 +1145,7 @@ function montarMsg(tpl,v){if(v&&!v.apelido)v.apelido=v.nome;return(tpl||'').repl
 function linkWpp(tel,msg){
   const num='55'+tel.replace(/\D/g,'')
   const texto=encodeURIComponent(msg)
-  const pref=localStorage.getItem('wppApp')||'padrao'
+  const pref=S.wppApp||localStorage.getItem('wppApp')||'padrao'
   const ehAndroid=/android/i.test(navigator.userAgent)
   // No Android dá para abrir um app específico; em outros sistemas usa o link universal
   if(ehAndroid&&pref==='normal')return'intent://send?phone='+num+'&text='+texto+'#Intent;scheme=whatsapp;package=com.whatsapp;end'
@@ -1216,7 +1220,8 @@ async function carregarNegocio(){
   }
 
   // Verifica aprovação
-  const{data:pCheck}=await sb.from('perfis').select('aprovado,plano,plano_expira_em').eq('id',S.user.id).maybeSingle()
+  const{data:pCheck}=await sb.from('perfis').select('aprovado,plano,plano_expira_em,wpp_app').eq('id',S.user.id).maybeSingle()
+  S.wppApp=pCheck?.wpp_app||localStorage.getItem('wppApp')||'padrao'
   S.plano=pCheck?.plano||'basico'
   S.planoExpira=pCheck?.plano_expira_em||null
   if(pCheck&&pCheck.aprovado===false){
@@ -1836,28 +1841,22 @@ async function carregarTemplates(){if(!S.negocio)return;const{data}=await sb.fro
 async function carregarDashboard(){
   if(!S.negocio)return
   const id=S.negocio.id
-  const[{data:res},{data:mi},{data:feeds},{data:contagem}]=await Promise.all([
-    sb.from('vw_dashboard').select('*').eq('negocio_id',id).maybeSingle(),
+  const[{data:mi},{data:feeds},{data:contagem},{count:qtdClientes},{data:codigos}]=await Promise.all([
     sb.from('vw_media_itens').select('*').eq('negocio_id',id),
     sb.from('avaliacoes').select('*,avaliacao_itens(*,itens_avaliacao(nome,emoji)),clientes(nome)').eq('negocio_id',id).order('criado_em',{ascending:false}).limit(3),
-    sb.from('avaliacoes').select('id,cliente_id,nota_geral,criado_em').eq('negocio_id',id)
+    sb.from('avaliacoes').select('id,cliente_id,nota_geral,criado_em,identificado').eq('negocio_id',id),
+    sb.from('clientes').select('id',{count:'exact',head:true}).eq('negocio_id',id),
+    sb.from('codigos_bonus').select('id,resgatado,tipo').eq('negocio_id',id)
   ])
   const totalAvals=contagem?.length||0
-  if(res){
-    // Calcula nota média direto
-  const{data:notaData}=await sb.from('avaliacoes').select('nota_geral').eq('negocio_id',id).not('nota_geral','is',null)
-  if(notaData?.length){
-    const media=notaData.reduce((s,a)=>s+(a.nota_geral||0),0)/notaData.length
-    document.getElementById('kpi-nota').textContent=media.toFixed(1)
-  } else {
-    document.getElementById('kpi-nota').textContent=res?.nota_media?parseFloat(res.nota_media).toFixed(1):'—'
-  }
-    document.getElementById('kpi-avals').textContent=res.total_avaliacoes??0
-    document.getElementById('kpi-clientes').textContent=res.total_clientes??0
-    document.getElementById('kpi-bonus-g').textContent=res.bonus_ativos??0
-    document.getElementById('kpi-bonus-r').textContent=res.bonus_resgatados??0
-    document.getElementById('kpi-id').textContent=res.avaliacoes_identificadas??0
-  }
+  // KPIs calculados direto das tabelas (funciona para qualquer conta)
+  const comNota=(contagem||[]).filter(a=>a.nota_geral!=null)
+  document.getElementById('kpi-nota').textContent=comNota.length?(comNota.reduce((s,a)=>s+ +a.nota_geral,0)/comNota.length).toFixed(1):'—'
+  document.getElementById('kpi-avals').textContent=totalAvals
+  document.getElementById('kpi-clientes').textContent=qtdClientes??0
+  document.getElementById('kpi-bonus-g').textContent=(codigos||[]).length
+  document.getElementById('kpi-bonus-r').textContent=(codigos||[]).filter(c=>c.resgatado).length
+  document.getElementById('kpi-id').textContent=(contagem||[]).filter(a=>a.identificado).length
   if(mi?.length){
     document.getElementById('dash-media-card').style.display='block'
     document.getElementById('dash-media-itens').innerHTML=mi.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span>${m.emoji||'⭐'} ${m.item_nome}</span><b style="color:${(m.nota_media||0)<3?'var(--rd)':'inherit'}">${m.nota_media??'—'}</b></div>`).join('')
@@ -2455,14 +2454,22 @@ async function confirmarResgate(){
 }
 
 // ── CONFIG ──
-function salvarWppApp(){
-  localStorage.setItem('wppApp',document.getElementById('cfg-wpp-app').value)
-  showToast('✅ Preferência de WhatsApp salva neste aparelho')
+async function salvarWppApp(){
+  const v=document.getElementById('cfg-wpp-app').value
+  localStorage.setItem('wppApp',v)
+  S.wppApp=v
+  setLoading(true)
+  const{error}=await sb.from('perfis').update({wpp_app:v}).eq('id',S.user.id)
+  setLoading(false)
+  if(error)return showToast('❌ '+error.message)
+  showToast('✅ Preferência salva na sua conta!')
 }
 
 async function carregarConfig(){
+  const btnInst=document.getElementById('btn-instalar-app')
+  if(btnInst&&(window.matchMedia('(display-mode: standalone)').matches||navigator.standalone))btnInst.style.display='none'
   const wppSel=document.getElementById('cfg-wpp-app')
-  if(wppSel)wppSel.value=localStorage.getItem('wppApp')||'padrao'
+  if(wppSel)wppSel.value=S.wppApp||localStorage.getItem('wppApp')||'padrao'
 
   if(!S.negocio)return
   setLoading(true)
@@ -3188,6 +3195,7 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault()
     deferredPrompt = e
+    window._installPrompt = e
     // Mostra modal após 2 segundos
     setTimeout(() => {
       if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
@@ -3201,6 +3209,46 @@ window.addEventListener('DOMContentLoaded', () => {
     showToast('✅ App instalado com sucesso!')
   })
 })
+
+async function instalarApp(){
+  // Já está rodando instalado?
+  if(window.matchMedia('(display-mode: standalone)').matches||navigator.standalone){
+    return showToast('✅ O app já está instalado neste aparelho!')
+  }
+  localStorage.removeItem('pwa-dismissed')
+  // Caminho feliz: o navegador ofereceu o prompt nativo
+  if(window._installPrompt){
+    window._installPrompt.prompt()
+    const{outcome}=await window._installPrompt.userChoice
+    if(outcome==='accepted'){window._installPrompt=null;return}
+    return showToast('Instalação cancelada — você pode tentar de novo quando quiser')
+  }
+  // Sem prompt disponível (iPhone, navegador do WhatsApp, etc.) → instruções
+  const ehIos=/iphone|ipad|ipod/i.test(navigator.userAgent)
+  const ov=document.createElement('div')
+  ov.id='instalar-ov'
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px'
+  ov.onclick=e=>{if(e.target===ov)ov.remove()}
+  ov.innerHTML=`<div style="background:#fff;border-radius:22px;padding:26px 22px;width:100%;max-width:360px">
+    <div style="font-size:36px;text-align:center;margin-bottom:8px">📲</div>
+    <div style="font-size:17px;font-weight:800;text-align:center;margin-bottom:14px">Como instalar o app</div>
+    ${ehIos?`
+      <div style="font-size:13.5px;line-height:1.7;color:var(--text)">
+        1. Abra este site no <b>Safari</b><br/>
+        2. Toque no botão <b>Compartilhar</b> <span style="font-size:15px">⎋</span> (quadrado com seta)<br/>
+        3. Escolha <b>"Adicionar à Tela de Início"</b><br/>
+        4. Toque em <b>Adicionar</b> — pronto! 🎉
+      </div>`:`
+      <div style="font-size:13.5px;line-height:1.7;color:var(--text)">
+        1. Abra este site no <b>Chrome</b> (se veio pelo WhatsApp, toque em ⋮ → <b>"Abrir no Chrome"</b>)<br/>
+        2. Toque no menu <b>⋮</b> no canto superior<br/>
+        3. Escolha <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b><br/>
+        4. Confirme — o ícone aparece na sua tela! 🎉
+      </div>`}
+    <button onclick="document.getElementById('instalar-ov').remove()" style="width:100%;margin-top:18px;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">Entendi</button>
+  </div>`
+  document.body.appendChild(ov)
+}
 
 function showInstallBanner(prompt) {
   if (localStorage.getItem('pwa-dismissed')) return
