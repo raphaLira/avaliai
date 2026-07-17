@@ -710,6 +710,7 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             <input type="number" id="cfg-min-itens" value="1" min="1" max="20"/>
             <div style="font-size:11px;color:#78350F;margin-top:5px">O cliente só consegue enviar a avaliação após dar nota nesse nº de itens</div>
           </div>
+          <div id="cfg-min-avals-bloco">
           <div class="bcfg-toggle" style="margin-top:12px">
             <div><div class="tt">Exigir X avaliações para o bônus</div><div class="ts">Ative para dar bônus só após N avaliações</div></div>
             <div class="amber-toggle" id="cfg-toggle-min-avals" onclick="toggleMinAvals()"></div>
@@ -721,6 +722,7 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             </div>
             <div style="font-size:10px;color:#78350F;line-height:1.4">Ex: 3 = o cliente precisa avaliar 3 vezes para ganhar o bônus. O progresso aparece na tela do cliente.</div>
           </div>
+          </div><!-- fim cfg-min-avals-bloco -->
           <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="salvarBonusConfig()">💾 Salvar bônus</button>
         </div>
         <div class="sec-title">Mensagens WhatsApp</div>
@@ -940,8 +942,8 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
           <div class="amber-toggle" id="skip-id-toggle" onclick="toggleSkipId()"></div>
         </div>
         <div id="id-card-content">
-          <div class="id-top"><div style="font-size:20px">🎁</div><div class="id-title">Ganhe um desconto!</div></div>
-          <div class="id-sub">Identifique-se para receber seu cupom direto no WhatsApp.</div>
+          <div class="id-top"><div style="font-size:20px" id="id-card-emoji">🎁</div><div class="id-title" id="id-card-titulo">Ganhe um desconto!</div></div>
+          <div class="id-sub" id="id-card-sub">Identifique-se para receber seu cupom direto no WhatsApp.</div>
           <div class="bonus-single">
             <div class="bonus-single-val" id="av-val-id">15% OFF</div>
             <div class="bonus-single-lbl" id="av-val-lbl">na sua próxima visita</div>
@@ -2515,13 +2517,24 @@ async function abrirEnviar(cId,nome,wpp,linkId,atual=0,total=0){
   }
   const bc=S.bonusConfig,tpl=S.templates['pedido_avaliacao']||'Olá {nome}! Avalie o {empresa}: {link}'
   let bonusTxt='bônus'
+  let premioTxt=''
   if(bc){
-    if(bc.tipo==='sorteio')bonusTxt=bc.sorteio_premio||'prêmios no sorteio'
+    if(bc.tipo==='sorteio'){
+      // Busca o prêmio do sorteio vigente (do dia ou o próximo agendado)
+      const{data:sdMsg}=await sb.rpc('sorteio_do_dia',{p_negocio_id:S.negocio.id})
+      if(sdMsg){
+        const dataMsg=(sdMsg.data_sorteio||'').split('-').reverse().slice(0,2).join('/')
+        premioTxt=(sdMsg.premio||'prêmios')+' (sorteio '+dataMsg+')'
+      } else {
+        premioTxt='prêmios do nosso sorteio'
+      }
+      bonusTxt=premioTxt
+    }
     else if(bc.tipo==='valor_fixo')bonusTxt='R$ '+bc.valor_identificado
     else if(bc.tipo==='personalizado'||bc.tipo==='servico_gratis')bonusTxt=bc.descricao_personalizada||'um bônus especial'
     else bonusTxt=bc.valor_identificado+'%'
   }
-  const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bonusTxt,premio:bc?.sorteio_premio||'',bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
+  const msg=montarMsg(tpl,{nome,empresa:S.negocio.nome,link,bonus_id:bonusTxt,premio:premioTxt,bonus_anon:bc?bc.valor_anonimo+'%':'bônus'})
   document.getElementById('m-enviar-sub').textContent='Para '+nome+' · '+wpp
   document.getElementById('m-enviar-preview').textContent=msg
   document.getElementById('m-enviar-wpp-btn').onclick=async()=>{
@@ -2660,6 +2673,8 @@ function atualizarTipoBonus(){
   const lbl=document.getElementById('cfg-bonus-valor-lbl')
   const minBloco=document.getElementById('cfg-toggle-min-avals')?.closest('.bcfg-toggle')?.parentElement
   wrapV.style.display='none';wrapD.style.display='none';wrapS.style.display='none'
+  const minBl=document.getElementById('cfg-min-avals-bloco')
+  if(minBl)minBl.style.display=t==='sorteio'?'none':'block'
   if(t==='sorteio'){
     wrapS.style.display='block'
   } else if(t==='personalizado'||t==='servico_gratis'){
@@ -2671,6 +2686,12 @@ function atualizarTipoBonus(){
 }
 
 async function salvarBonusConfig(){
+  const tipoBonusSel=document.getElementById('cfg-bonus-tipo').value
+  // No sorteio, todo bilhete sai em toda avaliação — ciclo não se aplica
+  if(tipoBonusSel==='sorteio'){
+    document.getElementById('cfg-toggle-min-avals')?.classList.remove('on')
+    const mF=document.getElementById('cfg-min-avals-field');if(mF)mF.style.display='none'
+  }
   // Mínimo de itens não pode ser maior que a quantidade de itens cadastrados
   const qtdItensCad=(S.itens||[]).length
   const minItensCfg=Math.max(1,+(document.getElementById('cfg-min-itens').value||1))
@@ -2790,6 +2811,11 @@ async function initAvaliar(slug,token){
       const lblCurto=ehSorteio?'🎟️ Número da Sorte':ehTexto?(bc.descricao_personalizada||'Bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' OFF':bc.valor_identificado+'% OFF')
       avS.bonusLabel=ehSorteio?'um número da sorte':ehTexto?(bc.descricao_personalizada||'um bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' de desconto':bc.valor_identificado+'% de desconto')
       if(ehSorteio){
+        const emj=document.getElementById('id-card-emoji');if(emj)emj.textContent='🎟️'
+        const tit=document.getElementById('id-card-titulo');if(tit)tit.textContent='Concorra ao sorteio!'
+        const sub=document.getElementById('id-card-sub');if(sub)sub.textContent='Identifique-se para ganhar seu bilhete da sorte.'
+        const btnEnv=document.querySelector('.btn-submit-eval')
+        if(btnEnv){btnEnv.textContent='Enviar avaliação e concorrer 🎟️';avS.btnBonusLabel='Enviar avaliação e concorrer 🎟️'}
         const lblEl2=document.getElementById('av-val-lbl')
         const{data:srtInfo}=await sb.rpc('sorteio_do_dia',{p_negocio_id:neg.id})
         if(lblEl2){
@@ -2954,7 +2980,7 @@ function toggleSkipId(){
   avS.identificado=!isOn
   // Só esconde: os valores (inclusive pré-preenchidos) são preservados para quando desmarcar
   content.style.display=isOn?'none':'block'
-  document.querySelector('.btn-submit-eval').textContent=isOn?'Enviar avaliação':'Enviar avaliação e receber bônus 🎁'
+  document.querySelector('.btn-submit-eval').textContent=isOn?'Enviar avaliação':(avS.btnBonusLabel||'Enviar avaliação e receber bônus 🎁')
   const tl=document.getElementById('ciclo-timeline')
   if(tl&&tl.innerHTML)tl.style.display=isOn?'none':'block'
   // Banner de progresso e cards de gamificação são exclusivos de quem se identifica
