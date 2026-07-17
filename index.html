@@ -632,36 +632,28 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
 
         <!-- ══ PAINEL DO SORTEIO ══ -->
         <div id="painel-sorteio" style="display:none;margin-top:20px">
-          <div class="sec-title">🎟️ Sorteio</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-            <div class="card" style="text-align:center;padding:13px 6px;margin:0"><div style="font-size:19px;font-weight:800;color:var(--brand)" id="srt-nums">0</div><div style="font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase">Números</div></div>
-            <div class="card" style="text-align:center;padding:13px 6px;margin:0"><div style="font-size:19px;font-weight:800;color:var(--brand)" id="srt-parts">0</div><div style="font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase">Participantes</div></div>
-            <div class="card" style="text-align:center;padding:13px 6px;margin:0"><div style="font-size:13px;font-weight:800;color:var(--gold);padding-top:4px" id="srt-freq">semanal</div><div style="font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase">Frequência</div></div>
-          </div>
+          <div class="sec-title">🎟️ Sorteios agendados</div>
 
-          <div style="background:linear-gradient(135deg,#1a0533,#2d0d5e);border-radius:16px;padding:24px 18px;text-align:center;color:#fff;margin-bottom:12px">
-            <div style="font-size:12px;font-weight:700;opacity:.7" id="srt-premio-lbl">🏆 PRÊMIO</div>
-            <div style="font-size:22px;font-weight:800;min-height:30px;margin:10px 0 4px" id="srt-rol-nome">?</div>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--gd);min-height:18px" id="srt-rol-cod">— toque para sortear —</div>
-            <button class="btn btn-full" style="background:var(--gd);color:#241052;margin-top:14px;border:none;border-radius:12px;padding:13px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer" onclick="realizarSorteio()" id="btn-sortear">🎲 Realizar sorteio agora</button>
-          </div>
-
-          <div id="srt-win" style="display:none;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border-radius:16px;padding:22px 18px;text-align:center;margin-bottom:12px">
-            <div style="font-size:34px">🎊</div>
-            <div style="font-size:12px;font-weight:800;letter-spacing:.08em;opacity:.85">GANHADOR DO SORTEIO</div>
-            <div style="font-size:22px;font-weight:800;margin:4px 0" id="srt-win-nome"></div>
-            <div style="font-family:'DM Mono',monospace;font-size:14px" id="srt-win-cod"></div>
-            <button class="btn btn-full" style="background:#fff;color:#166534;margin-top:14px;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer" id="srt-win-wpp">📲 Avisar no WhatsApp</button>
-          </div>
-
+          <!-- Calendário -->
           <div class="card">
-            <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Números deste período</div>
-            <div id="srt-lista"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <button onclick="mudarMesSorteio(-1)" style="background:var(--bg);border:none;border-radius:9px;padding:7px 13px;cursor:pointer;font-size:14px;font-family:inherit">‹</button>
+              <div style="font-size:14px;font-weight:800" id="srt-cal-titulo">—</div>
+              <button onclick="mudarMesSorteio(1)" style="background:var(--bg);border:none;border-radius:9px;padding:7px 13px;cursor:pointer;font-size:14px;font-family:inherit">›</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);margin-bottom:4px">
+              <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+            </div>
+            <div id="srt-calendario" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:10.5px;color:var(--muted)">
+              <span>🟡 Aguardando</span><span>🟢 Sorteado</span><span style="opacity:.7">Toque num dia para agendar</span>
+            </div>
           </div>
 
-          <div class="card" id="srt-hist-card" style="display:none">
-            <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Sorteios anteriores</div>
-            <div id="srt-hist"></div>
+          <!-- Grid de sorteios -->
+          <div class="card">
+            <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Todos os sorteios</div>
+            <div id="srt-grid"></div>
           </div>
         </div>
       </div>
@@ -697,15 +689,8 @@ body.blur-priv .sensivel{filter:blur(5px);user-select:none}
             <div style="font-size:11px;color:#78350F;margin-top:5px">Dado apenas para clientes identificados (nome + WhatsApp)</div>
           </div>
           <div id="cfg-sorteio-wrap" style="display:none;margin-top:10px">
-            <div style="background:var(--brand-light);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--brand);line-height:1.5;margin-bottom:10px">🎟️ <b>Cada avaliação identificada gera 1 número da sorte.</b> Quanto mais o cliente avalia, mais chances no sorteio.</div>
-            <div class="field"><label style="color:#92400E">Prêmio do sorteio</label><input type="text" id="cfg-sorteio-premio" placeholder="Ex: 1 lavagem completa + cera grátis" maxlength="80"/></div>
-            <div class="field"><label style="color:#92400E">Frequência do sorteio</label>
-              <select id="cfg-sorteio-freq"><option value="semanal">Semanal</option><option value="quinzenal">Quinzenal</option><option value="mensal">Mensal</option></select>
-            </div>
-            <div class="bcfg-toggle" style="margin-bottom:8px">
-              <div><div class="tt">Zerar números a cada sorteio</div><div class="ts">Desligado: os números acumulam para sempre</div></div>
-              <div class="amber-toggle on" id="cfg-sorteio-zerar" onclick="this.classList.toggle('on')"></div>
-            </div>
+            <div style="background:var(--brand-light);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--brand);line-height:1.5;margin-bottom:10px">🎟️ <b>Cada avaliação identificada gera 1 bilhete</b> que concorre no sorteio do dia. Agende os sorteios (dia + prêmio) no calendário da aba <b>Resgatar</b>.</div>
+            <button type="button" class="btn btn-ghost btn-full" style="margin-bottom:10px" onclick="navTo('resgatar')">📅 Abrir calendário de sorteios</button>
             <div class="bcfg-toggle">
               <div><div class="tt">Ganhador sai dos próximos sorteios</div><div class="ts">Por 30 dias, para dar chance aos outros</div></div>
               <div class="amber-toggle" id="cfg-sorteio-excluir" onclick="this.classList.toggle('on')"></div>
@@ -1759,90 +1744,193 @@ function navTo(page){
   if(page==='resgatar')carregarSorteio()
 }
 
-// ── SORTEIO (painel do dono) ──
+// ── SORTEIO (painel do dono) — v2: agendados por dia ──
+let srtMesBase=new Date()
+
 async function carregarSorteio(){
   const painel=document.getElementById('painel-sorteio')
   if(!painel||!S.negocio)return
-  const{data:bc}=await sb.from('bonus_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle()
+  const bc=S.bonusConfig||(await sb.from('bonus_config').select('*').eq('negocio_id',S.negocio.id).maybeSingle()).data
   if(!bc||bc.tipo!=='sorteio'){painel.style.display='none';return}
   painel.style.display='block'
-  // Sorteio ativo → painel vai para o TOPO da página Resgatar
   if(painel.parentElement.firstElementChild!==painel){
     painel.parentElement.insertBefore(painel,painel.parentElement.firstElementChild)
-    painel.style.marginTop='0'
-    painel.style.marginBottom='20px'
-  }
-  document.getElementById('srt-freq').textContent=bc.sorteio_frequencia||'semanal'
-  document.getElementById('srt-premio-lbl').textContent='🏆 PRÊMIO: '+(bc.sorteio_premio||'defina em Config').toUpperCase()
-
-  const{data:nums}=await sb.from('codigos_bonus')
-    .select('codigo,cliente_id,criado_em,clientes(nome)')
-    .eq('negocio_id',S.negocio.id).eq('tipo','sorteio').is('sorteio_id',null)
-    .order('criado_em',{ascending:false})
-  S._srtNums=nums||[]
-  document.getElementById('srt-nums').textContent=S._srtNums.length
-  document.getElementById('srt-parts').textContent=new Set(S._srtNums.map(n=>n.cliente_id)).size
-  const lst=document.getElementById('srt-lista')
-  if(!S._srtNums.length){
-    lst.innerHTML='<div style="text-align:center;padding:14px;color:var(--muted);font-size:12.5px">Nenhum número ainda — cada avaliação identificada gera um 🎟️</div>'
-  } else {
-    lst.innerHTML=S._srtNums.slice(0,30).map(n=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div style="width:30px;height:30px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">${escHtml((n.clientes?.nome||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase())}</div>
-      <div style="flex:1;font-size:13px;font-weight:700">${escHtml(n.clientes?.nome||'Cliente')}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold)">${n.codigo}</div>
-    </div>`).join('')+(S._srtNums.length>30?`<div style="text-align:center;font-size:11px;color:var(--muted);padding-top:8px">… e mais ${S._srtNums.length-30} números</div>`:'')
+    painel.style.marginTop='0';painel.style.marginBottom='20px'
   }
 
-  const{data:hist}=await sb.from('sorteios').select('*').eq('negocio_id',S.negocio.id).order('realizado_em',{ascending:false}).limit(5)
-  const hc=document.getElementById('srt-hist-card')
-  if(hist?.length){
-    hc.style.display='block'
-    document.getElementById('srt-hist').innerHTML=hist.map(h=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px">
-      <div><b>${new Date(h.realizado_em).toLocaleDateString('pt-BR')}</b> · ${escHtml(h.ganhador_nome||'—')} · <span style="font-family:'DM Mono',monospace;color:var(--gold);font-size:11px">${h.codigo_vencedor||''}</span></div>
-      ${h.entregue?'<span style="background:#DCFCE7;color:#166534;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800">✓ Entregue</span>':`<button onclick="marcarEntregue('${h.id}')" style="background:#FEF3C7;color:#92400E;border:none;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;font-family:inherit">Marcar entregue</button>`}
-    </div>`).join('')
-  } else {hc.style.display='none'}
+  // Busca sorteios + contagem de bilhetes
+  const{data:sorteios}=await sb.from('sorteios').select('*').eq('negocio_id',S.negocio.id).order('data_sorteio',{ascending:true})
+  S._sorteios=sorteios||[]
+  const ids=S._sorteios.map(s=>s.id)
+  S._srtBilhetes={}
+  if(ids.length){
+    const{data:tks}=await sb.from('codigos_bonus').select('sorteio_id').eq('negocio_id',S.negocio.id).eq('tipo','sorteio').in('sorteio_id',ids)
+    ;(tks||[]).forEach(t=>{S._srtBilhetes[t.sorteio_id]=(S._srtBilhetes[t.sorteio_id]||0)+1})
+  }
+  renderCalendarioSorteio()
+  renderGridSorteios()
 }
 
-async function realizarSorteio(){
-  if(!S._srtNums?.length)return showToast('Nenhum número para sortear ainda')
-  if(!confirm('🎲 Realizar o sorteio agora entre '+S._srtNums.length+' números?'))return
-  const btn=document.getElementById('btn-sortear')
-  btn.disabled=true;btn.textContent='🎲 Sorteando…'
-  document.getElementById('srt-win').style.display='none'
-  // Sorteio real no servidor (aleatório justo)
-  const{data,error}=await sb.rpc('realizar_sorteio',{p_negocio_id:S.negocio.id})
-  if(error||!data?.ok){
-    btn.disabled=false;btn.textContent='🎲 Realizar sorteio agora'
-    return showToast('❌ '+(error?.message||data?.erro||'Erro no sorteio'))
+function mudarMesSorteio(delta){
+  srtMesBase=new Date(srtMesBase.getFullYear(),srtMesBase.getMonth()+delta,1)
+  renderCalendarioSorteio()
+}
+
+function renderCalendarioSorteio(){
+  const y=srtMesBase.getFullYear(),m=srtMesBase.getMonth()
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  document.getElementById('srt-cal-titulo').textContent=MESES[m]+' '+y
+  const primeiro=new Date(y,m,1).getDay()
+  const dias=new Date(y,m+1,0).getDate()
+  const hojeStr=new Date().toLocaleDateString('sv-SE')
+  const porData={}
+  ;(S._sorteios||[]).forEach(s=>{if(s.data_sorteio)porData[s.data_sorteio]=s})
+  let cells=''
+  for(let i=0;i<primeiro;i++)cells+='<div></div>'
+  for(let d=1;d<=dias;d++){
+    const dataStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')
+    const s=porData[dataStr]
+    const passado=dataStr<hojeStr
+    const ehHoje=dataStr===hojeStr
+    let bg='#fff',bordo='1px solid var(--border)',extra=''
+    if(s){
+      bg=s.status==='sorteado'?'#DCFCE7':'#FEF3C7'
+      bordo=s.status==='sorteado'?'1.5px solid #86EFAC':'1.5px solid #FCD34D'
+      extra='<div style="font-size:9px;margin-top:1px">🎁</div>'
+    }
+    const clicavel=s||(!passado)
+    cells+=`<div onclick="${clicavel?`clicarDiaSorteio('${dataStr}')`:''}" style="background:${bg};border:${bordo};${ehHoje?'outline:2px solid var(--brand);outline-offset:-1px;':''}border-radius:9px;padding:6px 2px;text-align:center;font-size:12px;font-weight:${s?'800':'600'};color:${passado&&!s?'#C9C2DC':'var(--text)'};cursor:${clicavel?'pointer':'default'};min-height:38px">${d}${extra}</div>`
   }
-  // Animação de roleta com os nomes reais, terminando no vencedor do servidor
-  const nomeEl=document.getElementById('srt-rol-nome'),codEl=document.getElementById('srt-rol-cod')
+  document.getElementById('srt-calendario').innerHTML=cells
+}
+
+function clicarDiaSorteio(dataStr){
+  const s=(S._sorteios||[]).find(x=>x.data_sorteio===dataStr)
+  const dataFmt=dataStr.split('-').reverse().join('/')
+  if(s){
+    if(s.status==='sorteado')return showToast(`✅ ${dataFmt}: ${escHtml(s.ganhador_nome||'—')} ganhou "${s.premio||''}"`)
+    // Aguardando: editar prêmio ou excluir
+    const acao=prompt(`Sorteio de ${dataFmt} · Prêmio atual: ${s.premio}\n\nDigite o novo prêmio para editar, ou deixe vazio e OK para EXCLUIR este sorteio:`,s.premio||'')
+    if(acao===null)return
+    if(acao.trim()===''){
+      if(confirm('Excluir o sorteio de '+dataFmt+'? Os bilhetes dele passam para o próximo sorteio futuro.'))excluirSorteio(s.id)
+      return
+    }
+    salvarPremioSorteio(s.id,acao.trim())
+  } else {
+    const premio=prompt('🎁 Qual o prêmio do sorteio de '+dataFmt+'?')
+    if(!premio||!premio.trim())return
+    criarSorteio(dataStr,premio.trim())
+  }
+}
+
+async function criarSorteio(dataStr,premio){
+  setLoading(true)
+  const{error}=await sb.from('sorteios').insert({negocio_id:S.negocio.id,data_sorteio:dataStr,premio,status:'aguardando'})
+  setLoading(false)
+  if(error){
+    if(/duplicate|uniq/i.test(error.message))return showToast('⚠️ Já existe um sorteio nesse dia')
+    return showToast('❌ '+error.message)
+  }
+  showToast('🎟️ Sorteio agendado!')
+  carregarSorteio()
+}
+
+async function salvarPremioSorteio(id,premio){
+  await sb.from('sorteios').update({premio}).eq('id',id)
+  showToast('✅ Prêmio atualizado')
+  carregarSorteio()
+}
+
+async function excluirSorteio(id){
+  // Bilhetes órfãos voltam a valer para o próximo sorteio futuro
+  const{data:prox}=await sb.rpc('sorteio_do_dia',{p_negocio_id:S.negocio.id})
+  await sb.from('sorteios').delete().eq('id',id).eq('status','aguardando')
+  const proxId=prox&&prox.id!==id?prox.id:null
+  if(proxId)await sb.from('codigos_bonus').update({sorteio_id:proxId}).eq('sorteio_id',id)
+  showToast('🗑️ Sorteio excluído')
+  carregarSorteio()
+}
+
+function renderGridSorteios(){
+  const el=document.getElementById('srt-grid')
+  const lista=S._sorteios||[]
+  if(!lista.length){
+    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12.5px">Nenhum sorteio agendado ainda.<br/>Toque num dia do calendário para criar o primeiro 🎁</div>'
+    return
+  }
+  el.innerHTML=lista.map(s=>{
+    const dataFmt=(s.data_sorteio||'').split('-').reverse().join('/')
+    const qtd=S._srtBilhetes[s.id]||0
+    const aguard=s.status!=='sorteado'
+    return`<div style="border:1px solid var(--border);border-radius:13px;padding:12px 14px;margin-bottom:9px;background:${aguard?'#fff':'#F0FDF4'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:800">📅 ${dataFmt}</div>
+        <span style="background:${aguard?'#FEF3C7':'#DCFCE7'};color:${aguard?'#92400E':'#166534'};border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800">${aguard?'⏳ Aguardando sorteio':'✅ Sorteado'}</span>
+      </div>
+      <div style="font-size:13px;margin-top:5px">🏆 ${escHtml(s.premio||'—')}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">🎟️ <b>${qtd}</b> bilhete${qtd!==1?'s':''} concorrendo</div>
+      ${!aguard?`<div style="background:#fff;border:1.5px dashed #86EFAC;border-radius:10px;padding:9px 12px;margin-top:8px;font-size:12.5px">
+        🎊 <b>${escHtml(s.ganhador_nome||'Cliente')}</b> · <span style="font-family:'DM Mono',monospace;color:var(--gold)">${s.codigo_vencedor||''}</span>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          ${s.ganhador_whatsapp?`<button class="btn btn-green" style="flex:1;font-size:11px" onclick="avisarGanhador('${s.id}')">📲 Avisar</button>`:''}
+          ${s.entregue?'<span style="flex:1;text-align:center;font-size:11px;color:#166534;font-weight:800;padding:8px 0">✓ Prêmio entregue</span>':`<button class="btn btn-ghost" style="flex:1;font-size:11px" onclick="marcarEntregue('${s.id}')">Marcar entregue</button>`}
+        </div>
+      </div>`:`
+      <div style="display:flex;gap:8px;margin-top:9px">
+        <button class="btn btn-primary" style="flex:2;font-size:12px" onclick="realizarSorteioId('${s.id}')" ${qtd?'':'disabled style="flex:2;font-size:12px;opacity:.5"'}>🎲 Sortear agora</button>
+        <button class="btn btn-danger" style="flex:1;font-size:12px" onclick="clicarDiaSorteio('${s.data_sorteio}')">✏️</button>
+      </div>`}
+    </div>`
+  }).join('')
+}
+
+async function realizarSorteioId(id){
+  const s=(S._sorteios||[]).find(x=>x.id===id)
+  const qtd=S._srtBilhetes[id]||0
+  if(!qtd)return showToast('Nenhum bilhete neste sorteio ainda')
+  if(!confirm(`🎲 Sortear "${s?.premio||''}" entre ${qtd} bilhete${qtd>1?'s':''}?`))return
+  setLoading(true)
+  const{data,error}=await sb.rpc('realizar_sorteio',{p_negocio_id:S.negocio.id,p_sorteio_id:id})
+  setLoading(false)
+  if(error||!data?.ok)return showToast('❌ '+(error?.message||data?.erro||'Erro no sorteio'))
+  // Revelação com animação
+  const{data:tks}=await sb.from('codigos_bonus').select('codigo,clientes(nome)').eq('sorteio_id',id).limit(30)
+  const pool=(tks&&tks.length?tks:[{codigo:data.codigo,clientes:{nome:data.nome}}])
+  const ov=document.createElement('div')
+  ov.id='srt-reveal'
+  ov.style.cssText='position:fixed;inset:0;background:rgba(10,2,30,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px'
+  ov.innerHTML=`<div style="text-align:center;color:#fff;width:100%;max-width:340px">
+    <div style="font-size:13px;font-weight:700;opacity:.7;margin-bottom:6px">🏆 ${escHtml(data.premio||'')}</div>
+    <div id="rv-nome" style="font-size:26px;font-weight:800;min-height:36px">?</div>
+    <div id="rv-cod" style="font-family:'DM Mono',monospace;font-size:15px;color:var(--gd);min-height:22px;margin-top:4px"></div>
+    <div id="rv-acoes" style="display:none;margin-top:22px">
+      <div style="font-size:38px;margin-bottom:6px">🎊</div>
+      ${data.whatsapp?`<button onclick="abrirWhatsApp('${data.whatsapp}','🎊 PARABÉNS! Seu bilhete ${data.codigo} foi o GANHADOR do nosso sorteio! 🏆 Prêmio: ${(data.premio||'').replace(/'/g,'')}. Fale com a gente para combinar a retirada! 🎉')" style="width:100%;padding:13px;background:#25D366;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:9px">📲 Avisar no WhatsApp</button>`:''}
+      <button onclick="document.getElementById('srt-reveal').remove();carregarSorteio()" style="width:100%;padding:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Fechar</button>
+    </div>
+  </div>`
+  document.body.appendChild(ov)
   let i=0,vel=60
   function gira(){
-    const p=S._srtNums[i%S._srtNums.length]
-    nomeEl.textContent=p.clientes?.nome||'Cliente'
-    codEl.textContent=p.codigo
+    const p=pool[i%pool.length]
+    document.getElementById('rv-nome').textContent=p.clientes?.nome||'Cliente'
+    document.getElementById('rv-cod').textContent=p.codigo
     i++;vel*=1.14
     if(vel<650){setTimeout(gira,vel)}
     else{
-      nomeEl.textContent='🎊 '+(data.nome||'Cliente')
-      codEl.textContent=data.codigo
-      document.getElementById('srt-win-nome').textContent=data.nome||'Cliente'
-      document.getElementById('srt-win-cod').textContent=data.codigo
-      const wb=document.getElementById('srt-win-wpp')
-      wb.onclick=()=>{
-        const msg='🎊 PARABÉNS '+(data.nome||'').split(' ')[0].toUpperCase()+'! Seu número '+data.codigo+' foi o GANHADOR do nosso sorteio! 🏆 Prêmio: '+(data.premio||'')+'. Fale com a gente para combinar a retirada! 🎉'
-        if(data.whatsapp)abrirWhatsApp(data.whatsapp,msg)
-        else showToast('Cliente sem WhatsApp cadastrado')
-      }
-      document.getElementById('srt-win').style.display='block'
-      btn.disabled=false;btn.textContent='🎲 Realizar sorteio agora'
-      showToast('🎊 Sorteio realizado com '+data.total+' números!')
-      setTimeout(carregarSorteio,1200)
+      document.getElementById('rv-nome').textContent=data.nome||'Cliente'
+      document.getElementById('rv-cod').textContent=data.codigo
+      document.getElementById('rv-acoes').style.display='block'
     }
   }
   gira()
+}
+
+function avisarGanhador(id){
+  const s=(S._sorteios||[]).find(x=>x.id===id)
+  if(!s?.ganhador_whatsapp)return showToast('Ganhador sem WhatsApp')
+  abrirWhatsApp(s.ganhador_whatsapp,'🎊 PARABÉNS! Seu bilhete '+(s.codigo_vencedor||'')+' foi o GANHADOR do nosso sorteio! 🏆 Prêmio: '+(s.premio||'')+'. Fale com a gente para combinar a retirada! 🎉')
 }
 
 async function marcarEntregue(id){
@@ -2512,9 +2600,6 @@ async function carregarConfig(){
     document.getElementById('cfg-bonus-id').value=bc.valor_identificado||15
     document.getElementById('cfg-bonus-desc').value=bc.descricao_personalizada||''
     document.getElementById('cfg-min-itens').value=bc.min_itens||1
-    document.getElementById('cfg-sorteio-premio').value=bc.sorteio_premio||''
-    document.getElementById('cfg-sorteio-freq').value=bc.sorteio_frequencia||'semanal'
-    document.getElementById('cfg-sorteio-zerar').classList.toggle('on',bc.sorteio_zerar!==false)
     document.getElementById('cfg-sorteio-excluir').classList.toggle('on',!!bc.sorteio_excluir_ganhador)
     atualizarTipoBonus()
     document.getElementById('cfg-bonus-prefixo').value=bc.prefixo_codigo||'AVA'
@@ -2608,9 +2693,6 @@ async function salvarBonusConfig(){
     min_avaliacoes:minAvals,
     descricao_personalizada:document.getElementById('cfg-bonus-desc').value.trim()||null,
     min_itens:minItensCfg,
-    sorteio_premio:document.getElementById('cfg-sorteio-premio').value.trim()||null,
-    sorteio_frequencia:document.getElementById('cfg-sorteio-freq').value,
-    sorteio_zerar:document.getElementById('cfg-sorteio-zerar').classList.contains('on'),
     sorteio_excluir_ganhador:document.getElementById('cfg-sorteio-excluir').classList.contains('on')
   },{onConflict:'negocio_id'})
   setLoading(false)
@@ -2709,7 +2791,11 @@ async function initAvaliar(slug,token){
       avS.bonusLabel=ehSorteio?'um número da sorte':ehTexto?(bc.descricao_personalizada||'um bônus especial'):(bc.tipo==='valor_fixo'?'R$ '+bc.valor_identificado+' de desconto':bc.valor_identificado+'% de desconto')
       if(ehSorteio){
         const lblEl2=document.getElementById('av-val-lbl')
-        if(lblEl2)lblEl2.textContent='sorteio '+(bc.sorteio_frequencia||'semanal')+(bc.sorteio_premio?' · prêmio: '+bc.sorteio_premio:'')
+        const{data:srtInfo}=await sb.rpc('sorteio_do_dia',{p_negocio_id:neg.id})
+        if(lblEl2){
+          if(srtInfo)lblEl2.textContent='sorteio de '+srtInfo.data_sorteio.split('-').reverse().join('/')+(srtInfo.premio?' · prêmio: '+srtInfo.premio:'')
+          else lblEl2.textContent='próximo sorteio em breve'
+        }
       }
       const valElB=document.getElementById('av-val-id')
       valElB.textContent=lblCurto
@@ -2962,27 +3048,32 @@ async function enviarAvaliacao(){
     await sb.from('avaliacao_itens').insert(itensDados.filter(i=>i.nota>0).map(i=>({...i,avaliacao_id:av.id})))
     let codigoGerado=null
     const bc=avS.bc
-    // 🎟️ Modo sorteio: toda avaliação identificada gera 1 número da sorte
+    // 🎟️ Modo sorteio: bilhete vai para o sorteio do dia (ou o próximo agendado)
     if(bc&&bc.tipo==='sorteio'&&temId){
-      const{data:numSorte,error:errRpc}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo||'SORTE'})
-      if(errRpc)console.warn('sorteio rpc:',errRpc)
-      if(numSorte){
-        // Validade de 1 ano: alguns bancos exigem expira_em preenchido
-        const expSorte=new Date();expSorte.setDate(expSorte.getDate()+365)
-        const{error:errNum}=await sb.from('codigos_bonus').insert({
-          negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
-          codigo:numSorte,tipo:'sorteio',valor:0,identificado:true,
-          expira_em:expSorte.toISOString(),
-          descricao:'Número da sorte'+(bc.sorteio_premio?' · '+bc.sorteio_premio:'')
-        })
-        if(errNum){console.warn('sorteio insert:',errNum);showToast('⚠️ Número da sorte não gerado: '+errNum.message,4000)}
-        if(!errNum){
-          let qtdNums=1
-          if(cId){
-            const{data:qn}=await sb.rpc('contar_numeros_sorteio',{p_negocio_id:avS.negocio.id,p_cliente_id:cId})
-            qtdNums=qn||1
+      const{data:srtDia}=await sb.rpc('sorteio_do_dia',{p_negocio_id:avS.negocio.id})
+      if(!srtDia){
+        console.warn('sem sorteio agendado — bilhete não gerado')
+      } else {
+        const{data:numSorte,error:errRpc}=await sb.rpc('gerar_codigo_bonus',{prefixo:bc.prefixo_codigo||'SORTE'})
+        if(errRpc)console.warn('sorteio rpc:',errRpc)
+        if(numSorte){
+          const expSorte=new Date();expSorte.setDate(expSorte.getDate()+365)
+          const{error:errNum}=await sb.from('codigos_bonus').insert({
+            negocio_id:avS.negocio.id,avaliacao_id:av.id,cliente_id:cId,
+            codigo:numSorte,tipo:'sorteio',valor:0,identificado:true,
+            sorteio_id:srtDia.id,
+            expira_em:expSorte.toISOString(),
+            descricao:'Bilhete · sorteio '+srtDia.data_sorteio.split('-').reverse().join('/')+(srtDia.premio?' · '+srtDia.premio:'')
+          })
+          if(errNum){console.warn('sorteio insert:',errNum);showToast('⚠️ Bilhete não gerado: '+errNum.message,4000)}
+          if(!errNum){
+            let qtdNums=1
+            if(cId){
+              const{data:qn}=await sb.rpc('contar_numeros_sorteio',{p_negocio_id:avS.negocio.id,p_cliente_id:cId,p_sorteio_id:srtDia.id})
+              qtdNums=qn||1
+            }
+            codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:srtDia.premio||'',qtdNums,dataSorteio:srtDia.data_sorteio.split('-').reverse().join('/')}
           }
-          codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:bc.sorteio_premio||'',qtdNums,freq:bc.sorteio_frequencia||'semanal'}
         }
       }
     }
@@ -3078,7 +3169,7 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
         <div style="background:linear-gradient(135deg,#FDF6E3,#FCEFC7);border:2px dashed var(--gold);border-radius:16px;padding:20px;text-align:center">
           <div style="font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.1em;margin-bottom:6px">🎟️ SEU NÚMERO DA SORTE</div>
           <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:#92400E;letter-spacing:.08em">${codigo.codigo}</div>
-          <div style="font-size:12px;color:#78350F;margin-top:8px;line-height:1.5">Sorteio <b>${codigo.freq}</b>${codigo.descricao?`<br/>Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}</div>
+          <div style="font-size:12px;color:#78350F;margin-top:8px;line-height:1.5">Sorteio de <b>${codigo.dataSorteio||''}</b>${codigo.descricao?`<br/>Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}</div>
         </div>
         <div style="background:var(--brand-light);border-radius:10px;padding:11px 13px;margin-top:12px;text-align:center;font-size:13px;color:var(--brand)">
           🍀 Você tem <b>${codigo.qtdNums} número${codigo.qtdNums>1?'s':''}</b> neste sorteio!<br/><span style="font-size:11px;opacity:.8">Cada visita avaliada = +1 chance de ganhar</span>

@@ -21,7 +21,10 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity"],
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "lang": "pt-BR",
   "shortcuts": [
     {
@@ -34,5 +37,11 @@
       "url": "/?page=clientes",
       "description": "Gerenciar clientes"
     }
+  ],
+  "id": "/",
+  "scope": "/",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
   ]
 }
