@@ -2007,7 +2007,7 @@ async function carregarDashboard(){
         </div>
         <span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span>
       </div>
-      <div class="sensivel" style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">${nome}</div>
+      <div class="sensivel" onclick="verClienteInfo('${av.cliente_id||''}')" style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;cursor:${av.cliente_id?'pointer':'default'};${av.cliente_id?'text-decoration:underline dotted var(--muted);text-underline-offset:3px':''}">${nome}</div>
       ${av.avaliador_whatsapp?`<div class="sensivel" style="font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px">📱 ${av.avaliador_whatsapp}</div>`:''}
       ${itens?`<div class="fi-items-list" style="margin-bottom:4px">${itens}</div>`:''}
       ${comentarioGeral}
@@ -2082,7 +2082,7 @@ function cardAvaliacaoHTML(av){
     return`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${ai.itens_avaliacao?.emoji||''} ${ai.itens_avaliacao?.nome||''}</span><span>${'⭐'.repeat(ai.nota)}</span>${com}</div>`
   }).join('')
   const com=av.comentario?`<div style="background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:7px;font-size:12px;border-left:3px solid var(--brand)">💬 "${escHtml(av.comentario)}"</div>`:''
-  return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div class="sensivel" style="font-size:12px;font-weight:700;margin-bottom:2px">${nome}</div>${av.avaliador_whatsapp?`<div class="sensivel" style="font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">📱 ${av.avaliador_whatsapp}</div>`:'<div style="margin-bottom:4px"></div>'}${itens?`<div>${itens}</div>`:''} ${com}</div>`
+  return`<div class="fi"><div class="fi-top"><div><span>${'⭐'.repeat(n)}</span> <span style="font-size:11px;font-weight:700;color:var(--muted)">${n}/5</span></div><span style="font-size:10px;color:var(--muted)">${fmtDate(av.criado_em)}</span></div><div class="sensivel" onclick="verClienteInfo('${av.cliente_id||''}')" style="font-size:12px;font-weight:700;margin-bottom:2px;cursor:${av.cliente_id?'pointer':'default'};${av.cliente_id?'text-decoration:underline dotted var(--muted);text-underline-offset:3px':''}">${nome}</div>${av.avaliador_whatsapp?`<div class="sensivel" style="font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">📱 ${av.avaliador_whatsapp}</div>`:'<div style="margin-bottom:4px"></div>'}${itens?`<div>${itens}</div>`:''} ${com}</div>`
 }
 
 function renderTodasAvals(){
@@ -2106,6 +2106,51 @@ function renderTodasAvals(){
   document.getElementById('m-todas-content').innerHTML=filtradas.length
     ? filtradas.map(cardAvaliacaoHTML).join('')
     : '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhuma avaliação com esses filtros</div>'
+}
+
+async function verClienteInfo(cid){
+  if(!cid)return showToast('Avaliação sem cliente vinculado')
+  setLoading(true)
+  const[{data:c},{count:qtdAv},{data:gam}]=await Promise.all([
+    sb.from('clientes').select('*').eq('id',cid).maybeSingle(),
+    sb.from('avaliacoes').select('id',{count:'exact',head:true}).eq('cliente_id',cid).eq('negocio_id',S.negocio.id),
+    sb.from('gamificacao_cliente').select('nivel_atual,nivel_icon,selos_atual,streak_atual').eq('cliente_id',cid).eq('negocio_id',S.negocio.id).maybeSingle()
+  ])
+  setLoading(false)
+  if(!c)return showToast('Cliente não encontrado')
+  const linha=(rotulo,valor)=>valor?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted);font-weight:700">${rotulo}</span><span style="font-size:13px;text-align:right">${escHtml(valor)}</span></div>`:''
+  const endereco=[c.logradouro,c.numero].filter(Boolean).join(', ')+((c.bairro||c.cidade)?' — '+[c.bairro,c.cidade&&c.uf?c.cidade+'/'+c.uf:c.cidade].filter(Boolean).join(', '):'')
+  let el=document.getElementById('m-cli-info')
+  if(el)el.remove()
+  el=document.createElement('div')
+  el.id='m-cli-info'
+  el.className='modal-bg open'
+  el.onclick=e=>{if(e.target===el)el.remove()}
+  el.innerHTML=`<div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800">${escHtml((c.nome||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase())}</div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:800">${escHtml(c.nome)}</div>
+        ${c.apelido?`<div style="font-size:12px;color:var(--muted)">"${escHtml(c.apelido)}"</div>`:''}
+      </div>
+      <button onclick="document.getElementById('m-cli-info').remove()" style="background:var(--bg);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:var(--bg);border-radius:11px;padding:10px 4px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--brand)">${qtdAv||0}</div><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">Avaliações</div></div>
+      <div style="background:var(--bg);border-radius:11px;padding:10px 4px;text-align:center"><div style="font-size:16px;font-weight:800">${gam?.nivel_icon||'—'}</div><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">${escHtml(gam?.nivel_atual||'Nível')}</div></div>
+      <div style="background:var(--bg);border-radius:11px;padding:10px 4px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--gold)">${gam?.selos_atual??'—'}</div><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">Selos</div></div>
+    </div>
+    ${linha('📱 WhatsApp',c.whatsapp)}
+    ${linha('✉️ E-mail',c.email)}
+    ${linha('🪪 CPF',c.cpf)}
+    ${linha('📍 Endereço',endereco.trim()?endereco:'')}
+    ${linha('📮 CEP',c.cep)}
+    ${linha('🏷️ Origem',c.origem)}
+    ${c.criado_em?linha('📅 Cliente desde',new Date(c.criado_em).toLocaleDateString('pt-BR')):''}
+    ${c.whatsapp?`<button class="btn btn-green btn-full" style="margin-top:14px" onclick="abrirWhatsApp('${c.whatsapp}','Olá ${escJs(c.apelido||c.nome)}! ')">📲 Chamar no WhatsApp</button>`:''}
+  </div>`
+  document.body.appendChild(el)
 }
 
 async function verAvaliacaoCliente(clienteId,linkId,nome){
