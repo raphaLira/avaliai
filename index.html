@@ -1899,7 +1899,7 @@ function renderGridSorteios(){
       <div style="font-size:12px;color:var(--muted);margin-top:3px">🎟️ <b>${qtd}</b> bilhete${qtd!==1?'s':''} concorrendo</div>
       ${!aguard?`<div style="background:#fff;border:1.5px dashed #86EFAC;border-radius:10px;padding:9px 12px;margin-top:8px;font-size:12.5px">
         🎊 <b>${escHtml(s.ganhador_nome||'Cliente')}</b> · <span style="font-family:'DM Mono',monospace;color:var(--gold)">${s.codigo_vencedor||''}</span>
-        <div style="font-size:10.5px;color:var(--muted);margin-top:2px">⏳ Retirar até ${(()=>{const b=s.realizado_em?new Date(s.realizado_em):new Date();b.setDate(b.getDate()+(S.bonusConfig?.sorteio_dias_validade||7));return b.toLocaleDateString('pt-BR')})()}</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:2px">⏳ Retirar até ${(()=>{const b=s.data_sorteio?new Date(s.data_sorteio+'T00:00:00'):(s.realizado_em?new Date(s.realizado_em):new Date());b.setDate(b.getDate()+(S.bonusConfig?.sorteio_dias_validade||7));return b.toLocaleDateString('pt-BR')})()}</div>
         <div style="display:flex;gap:8px;margin-top:8px">
           ${s.ganhador_whatsapp?`<button class="btn btn-green" style="flex:1;font-size:11px" onclick="avisarGanhador('${s.id}')">📲 Avisar</button>`:''}
           ${s.entregue?'<span style="flex:1;text-align:center;font-size:11px;color:#166534;font-weight:800;padding:8px 0">✓ Prêmio entregue</span>':`<button class="btn btn-ghost" style="flex:1;font-size:11px" onclick="marcarEntregue('${s.id}')">Marcar entregue</button>`}
@@ -1923,7 +1923,8 @@ async function realizarSorteioId(id){
   setLoading(false)
   if(error||!data?.ok)return showToast('❌ '+(error?.message||data?.erro||'Erro no sorteio'))
   const diasVal=S.bonusConfig?.sorteio_dias_validade||7
-  const dtVal=new Date();dtVal.setDate(dtVal.getDate()+diasVal)
+  const dtVal=s?.data_sorteio?new Date(s.data_sorteio+'T00:00:00'):new Date()
+  dtVal.setDate(dtVal.getDate()+diasVal)
   const dataValFmt=dtVal.toLocaleDateString('pt-BR')
   // Revelação com animação
   const{data:tks}=await sb.from('codigos_bonus').select('codigo,clientes(nome)').eq('sorteio_id',id).limit(30)
@@ -1963,7 +1964,7 @@ function avisarGanhador(id){
   const s=(S._sorteios||[]).find(x=>x.id===id)
   if(!s?.ganhador_whatsapp)return showToast('Ganhador sem WhatsApp')
   const diasVal=S.bonusConfig?.sorteio_dias_validade||7
-  const base=s.realizado_em?new Date(s.realizado_em):new Date()
+  const base=s.data_sorteio?new Date(s.data_sorteio+'T00:00:00'):(s.realizado_em?new Date(s.realizado_em):new Date())
   base.setDate(base.getDate()+diasVal)
   const dataValFmt=base.toLocaleDateString('pt-BR')
   abrirWhatsApp(s.ganhador_whatsapp,'🎊 PARABÉNS! Seu bilhete '+(s.codigo_vencedor||'')+' foi o GANHADOR do nosso sorteio! 🏆 Prêmio: '+(s.premio||'')+'. Você tem até *'+dataValFmt+'* para retirar o prêmio! Fale com a gente para combinar. 🎉')
@@ -3181,7 +3182,10 @@ async function enviarAvaliacao(){
               const{data:qn}=await sb.rpc('contar_numeros_sorteio',{p_negocio_id:avS.negocio.id,p_cliente_id:cId,p_sorteio_id:srtDia.id})
               qtdNums=qn||1
             }
-            codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:srtDia.premio||'',qtdNums,dataSorteio:srtDia.data_sorteio.split('-').reverse().join('/')}
+            const diasValSorteio=bc.sorteio_dias_validade||7
+            const dtLimiteObj=new Date(srtDia.data_sorteio+'T00:00:00')
+            dtLimiteObj.setDate(dtLimiteObj.getDate()+diasValSorteio)
+            codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:srtDia.premio||'',qtdNums,dataSorteio:srtDia.data_sorteio.split('-').reverse().join('/'),dataLimite:dtLimiteObj.toLocaleDateString('pt-BR')}
           }
         }
       }
@@ -3278,7 +3282,7 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
         <div style="background:linear-gradient(135deg,#FDF6E3,#FCEFC7);border:2px dashed var(--gold);border-radius:16px;padding:20px;text-align:center">
           <div style="font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.1em;margin-bottom:6px">🎟️ SEU NÚMERO DA SORTE</div>
           <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:#92400E;letter-spacing:.08em">${codigo.codigo}</div>
-          <div style="font-size:12px;color:#78350F;margin-top:8px;line-height:1.5">Sorteio de <b>${codigo.dataSorteio||''}</b>${codigo.descricao?`<br/>Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}</div>
+          <div style="font-size:12px;color:#78350F;margin-top:8px;line-height:1.5">Sorteio de <b>${codigo.dataSorteio||''}</b>${codigo.descricao?`<br/>Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}${codigo.dataLimite?`<br/>⏳ Retirar até: <b>${codigo.dataLimite}</b>`:''}</div>
         </div>
         <div style="background:var(--brand-light);border-radius:10px;padding:11px 13px;margin-top:12px;text-align:center;font-size:13px;color:var(--brand)">
           🍀 Você tem <b>${codigo.qtdNums} número${codigo.qtdNums>1?'s':''}</b> neste sorteio!<br/><span style="font-size:11px;opacity:.8">Cada visita avaliada = +1 chance de ganhar</span>
