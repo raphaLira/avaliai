@@ -1,4 +1,4 @@
-const CACHE_NAME = 'avaliai-v1'
+const CACHE_NAME = 'feedbackja-v1'
 const ASSETS = [
   '/',
   '/index.html',
