@@ -3185,7 +3185,8 @@ async function enviarAvaliacao(){
             const diasValSorteio=bc.sorteio_dias_validade||7
             const dtLimiteObj=new Date(srtDia.data_sorteio+'T00:00:00')
             dtLimiteObj.setDate(dtLimiteObj.getDate()+diasValSorteio)
-            codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:srtDia.premio||'',qtdNums,dataSorteio:srtDia.data_sorteio.split('-').reverse().join('/'),dataLimite:dtLimiteObj.toLocaleDateString('pt-BR')}
+            const diasRestantes=Math.max(0,Math.ceil((dtLimiteObj-new Date())/864e5))
+            codigoGerado={codigo:numSorte,tipo:'sorteio',descricao:srtDia.premio||'',qtdNums,dataSorteio:srtDia.data_sorteio.split('-').reverse().join('/'),dataLimite:dtLimiteObj.toLocaleDateString('pt-BR'),diasRestantes}
           }
         }
       }
@@ -3279,11 +3280,17 @@ function mostrarSucesso(codigo,identificado,nome,tel,progresso=null){
     if(cardB){
       cardB.style.display='block'
       cardB.innerHTML=`
-        <div style="background:linear-gradient(135deg,#FDF6E3,#FCEFC7);border:2px dashed var(--gold);border-radius:16px;padding:20px;text-align:center">
-          <div style="font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.1em;margin-bottom:6px">🎟️ SEU NÚMERO DA SORTE</div>
-          <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:#92400E;letter-spacing:.08em">${codigo.codigo}</div>
-          <div style="font-size:12px;color:#78350F;margin-top:8px;line-height:1.5">Sorteio de <b>${codigo.dataSorteio||''}</b>${codigo.descricao?`<br/>Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}${codigo.dataLimite?`<br/>⏳ Retirar até: <b>${codigo.dataLimite}</b>`:''}</div>
+        <div style="background:linear-gradient(135deg,#FDF6E3,#FCEFC7);border:2.5px dashed var(--gold);border-radius:18px;padding:22px 18px;text-align:center">
+          <div style="font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.12em;margin-bottom:10px">🎟️ SEU NÚMERO DA SORTE</div>
+          <div style="font-family:'DM Mono',monospace;font-size:34px;font-weight:500;color:#78350F;letter-spacing:.06em;text-shadow:0 1px 0 rgba(255,255,255,.6);word-break:break-all">${codigo.codigo}</div>
+          <div style="height:1.5px;background:repeating-linear-gradient(90deg,var(--gold) 0 6px,transparent 6px 12px);margin:14px 0"></div>
+          <div style="font-size:13px;color:#78350F;line-height:1.6">Sorteio de <b>${codigo.dataSorteio||''}</b>${codigo.descricao?`<br/>🏆 Prêmio: <b>${escHtml(codigo.descricao)}</b>`:''}</div>
         </div>
+        ${codigo.dataLimite?`<div style="background:linear-gradient(135deg,#DC2626,#EF4444);border-radius:14px;padding:14px 16px;margin-top:12px;text-align:center;color:#fff">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;opacity:.85">⏳ PRAZO PARA RETIRAR O PRÊMIO</div>
+          <div style="font-size:22px;font-weight:800;margin-top:3px">${codigo.dataLimite}</div>
+          <div style="font-size:12px;opacity:.9;margin-top:2px">${codigo.diasRestantes===0?'último dia!':codigo.diasRestantes===1?'falta 1 dia':'faltam '+codigo.diasRestantes+' dias'}</div>
+        </div>`:''}
         <div style="background:var(--brand-light);border-radius:10px;padding:11px 13px;margin-top:12px;text-align:center;font-size:13px;color:var(--brand)">
           🍀 Você tem <b>${codigo.qtdNums} número${codigo.qtdNums>1?'s':''}</b> neste sorteio!<br/><span style="font-size:11px;opacity:.8">Cada visita avaliada = +1 chance de ganhar</span>
         </div>`
