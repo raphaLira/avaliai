@@ -1782,6 +1782,20 @@ async function carregarSorteio(){
   }
   renderCalendarioSorteio()
   renderGridSorteios()
+  renderAvisoSemSorteio()
+}
+
+function renderAvisoSemSorteio(){
+  const existente=document.getElementById('srt-aviso-vazio')
+  if(existente)existente.remove()
+  const temAguardando=(S._sorteios||[]).some(s=>s.status==='aguardando')
+  if(temAguardando)return
+  const painel=document.getElementById('painel-sorteio')
+  const av=document.createElement('div')
+  av.id='srt-aviso-vazio'
+  av.style.cssText='background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#991B1B;line-height:1.5'
+  av.innerHTML='⚠️ <b>Nenhum sorteio agendado no momento.</b> As avaliações identificadas NÃO estão gerando bilhetes. Toque num dia no calendário abaixo para agendar o próximo sorteio.'
+  painel.insertBefore(av,painel.firstElementChild)
 }
 
 function mudarMesSorteio(delta){
